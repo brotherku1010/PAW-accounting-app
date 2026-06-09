@@ -12,41 +12,48 @@
     <style>
         /* ================= 系統共用變數與全域設定 ================= */
         :root {
-            --primary: #4b6cb7;
-            /* 主色調：沉穩藍 */
-            --secondary: #182848;
-            /* 次色調：深海藍 */
+            --primary: #8a2be2;
+            /* 主色調：質感紫 (BlueViolet) */
+            --secondary: #5e1c9e;
+            /* 次色調：深邃紫 */
             --bg: #f2f4f6;
-            /* 系統背景色 (與師資系統一致) */
+            /* 系統背景色 */
             --card-bg: #ffffff;
             /* 卡片背景色 */
             --text-main: #333333;
-            --text-muted: #888888;
+            --text-muted: #666666;
+            /* 加深一點讓字體更易讀 */
             --red: #e74c3c;
-            /* 支出紅 */
             --green: #2ecc71;
-            /* 收入綠 */
+        }
+
+        /* 嚴格限制所有元素的 padding 不會撐破寬度 */
+        * {
+            box-sizing: border-box;
         }
 
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg);
+            background-color: #e0e0e0;
+            /* 電腦版外圍背景色 */
             color: var(--text-main);
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
             display: flex;
             justify-content: center;
-            /* 讓版面在電腦版置中 */
+            /* 讓版面在電腦版絕對置中 */
+            font-size: 16px;
+            /* 整體基礎字體放大 */
         }
 
-        /* 手機直版框架 (最大 500px) */
+        /* 手機直版框架 (嚴格最大寬度 500px) */
         .app-container {
             width: 100%;
             max-width: 500px;
             min-height: 100vh;
             background-color: var(--bg);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
             position: relative;
             overflow-x: hidden;
         }
@@ -57,7 +64,6 @@
             padding: 20px;
             animation: fadeIn 0.3s ease-out;
             padding-bottom: 100px;
-            /* 底部預留呼吸空間 */
         }
 
         .page.active {
@@ -78,11 +84,11 @@
 
         /* ================= 元件樣式 ================= */
 
-        /* 1. 頂部月份切換器 (浮動感) */
+        /* 頂部月份切換器 */
         .month-selector {
             background: var(--card-bg);
             border-radius: 30px;
-            padding: 10px 20px;
+            padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -90,36 +96,39 @@
             margin-bottom: 20px;
             font-weight: bold;
             color: var(--primary);
+            font-size: 18px;
+            /* 字體加大 */
         }
 
         .month-selector button {
             background: none;
             border: none;
-            font-size: 18px;
+            font-size: 20px;
             color: var(--text-muted);
             cursor: pointer;
             padding: 0 10px;
         }
 
-        /* 2. 主視覺：帳目餘額卡片 */
+        /* 主視覺：帳目餘額卡片 */
         .balance-card {
             background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
             border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 10px 25px rgba(75, 108, 183, 0.3);
+            box-shadow: 0 10px 25px rgba(138, 43, 226, 0.3);
+            /* 紫色陰影 */
             margin-bottom: 25px;
             text-align: center;
         }
 
         .balance-card .title {
-            font-size: 14px;
-            opacity: 0.8;
+            font-size: 16px;
+            opacity: 0.9;
             margin-bottom: 10px;
         }
 
         .balance-card .amount {
-            font-size: 36px;
+            font-size: 40px;
             font-weight: bold;
             margin-bottom: 15px;
         }
@@ -128,12 +137,12 @@
             display: flex;
             justify-content: space-between;
             background: rgba(255, 255, 255, 0.15);
-            padding: 12px;
+            padding: 12px 15px;
             border-radius: 12px;
-            font-size: 14px;
+            font-size: 15px;
         }
 
-        /* 3. 選單網格 (九宮格感) */
+        /* 選單網格 */
         .menu-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -147,44 +156,41 @@
             text-align: center;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
             cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
+            transition: transform 0.1s;
         }
 
         .menu-item:active {
             transform: scale(0.96);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
 
         .menu-item .icon {
-            font-size: 28px;
+            font-size: 32px;
             margin-bottom: 10px;
             display: block;
         }
 
         .menu-item .text {
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 16px;
+            font-weight: bold;
             color: var(--text-main);
         }
 
-        /* 4. 浮動新增按鈕 (FAB) */
+        /* 浮動新增按鈕 (FAB) */
         .fab {
             position: absolute;
-            /* 綁定在 app-container 內 */
             bottom: 30px;
             right: 20px;
-            width: 60px;
-            height: 60px;
+            width: 65px;
+            height: 65px;
             background: var(--primary);
             color: white;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 30px;
-            box-shadow: 0 8px 20px rgba(75, 108, 183, 0.4);
+            font-size: 32px;
+            box-shadow: 0 8px 20px rgba(138, 43, 226, 0.4);
             cursor: pointer;
-            transition: transform 0.2s;
             z-index: 100;
         }
 
@@ -192,7 +198,7 @@
             transform: scale(0.9) rotate(15deg);
         }
 
-        /* 5. 第二層頁面共用標頭 */
+        /* 第二層頁面共用標頭 */
         .page-header {
             display: flex;
             align-items: center;
@@ -202,7 +208,7 @@
         }
 
         .page-header .back-btn {
-            font-size: 20px;
+            font-size: 22px;
             margin-right: 15px;
             cursor: pointer;
             color: var(--text-muted);
@@ -210,18 +216,84 @@
 
         .page-header h2 {
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
             color: var(--secondary);
         }
 
-        /* 內容佔位符號 */
-        .placeholder-box {
-            background: var(--card-bg);
+        /* ================= 表單專屬樣式 ================= */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        /* 確保輸入框字體至少 16px，避免 iOS 點擊時自動放大畫面 */
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            font-family: inherit;
+            background-color: #fafafa;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background-color: #fff;
+            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+        }
+
+        /* 交易類型切換按鈕 */
+        .toggle-group {
+            display: flex;
+            background: #f0f0f0;
             border-radius: 12px;
-            padding: 30px;
+            padding: 5px;
+        }
+
+        .toggle-btn {
+            flex: 1;
             text-align: center;
+            padding: 12px 0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
             color: var(--text-muted);
-            border: 2px dashed #ddd;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--card-bg);
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.98);
         }
     </style>
 </head>
@@ -277,38 +349,35 @@
             </div>
 
             <div
-                style="background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                style="background: var(--card-bg); padding: 25px 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
 
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">日期</label>
-                    <input type="date" id="form-date"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                <div class="form-group">
+                    <label>日期</label>
+                    <input type="date" id="form-date">
                 </div>
 
-                <div class="form-group" style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">交易類型</label>
-                    <select id="form-transactionType" onchange="updateFormVisibility()"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
-                        <option value="一般收支">一般收支</option>
-                        <option value="帳戶戶轉">帳戶戶轉</option>
-                    </select>
+                <div class="form-group">
+                    <label>交易類型</label>
+                    <div class="toggle-group">
+                        <div class="toggle-btn active" id="btn-general" onclick="setTransactionType('一般收支')">一般收支</div>
+                        <div class="toggle-btn" id="btn-transfer" onclick="setTransactionType('帳戶戶轉')">帳戶戶轉</div>
+                    </div>
+                    <input type="hidden" id="form-transactionType" value="一般收支">
                 </div>
 
                 <div id="group-general" style="display: block;">
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">收支類型</label>
-                        <select id="form-incomeExpenseType" onchange="updateFormVisibility()"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div class="form-group">
+                        <label>收支類型</label>
+                        <select id="form-incomeExpenseType" onchange="updateFormVisibility()">
                             <option value="支出">📤 支出</option>
                             <option value="收入">📥 收入</option>
                             <option value="還款收入">🔙 還款收入</option>
                         </select>
                     </div>
 
-                    <div id="fg-category" class="form-group" style="margin-bottom: 15px; display: block;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">帳目類型</label>
-                        <select id="form-category"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div id="fg-category" class="form-group" style="display: block;">
+                        <label>帳目類型</label>
+                        <select id="form-category">
                             <option value="生活費">生活費</option>
                             <option value="必要支出">必要支出</option>
                             <option value="儲蓄投資">儲蓄投資</option>
@@ -317,10 +386,9 @@
                         </select>
                     </div>
 
-                    <div id="fg-paymentType" class="form-group" style="margin-bottom: 15px; display: block;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">支付類型</label>
-                        <select id="form-paymentType"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div id="fg-paymentType" class="form-group" style="display: block;">
+                        <label>支付類型</label>
+                        <select id="form-paymentType">
                             <option value="郵局">郵局</option>
                             <option value="國泰">國泰</option>
                             <option value="華南">華南</option>
@@ -329,10 +397,9 @@
                         </select>
                     </div>
 
-                    <div id="fg-incomeAccount" class="form-group" style="margin-bottom: 15px; display: none;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">收入帳目</label>
-                        <select id="form-incomeAccount"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div id="fg-incomeAccount" class="form-group" style="display: none;">
+                        <label>收入帳目</label>
+                        <select id="form-incomeAccount">
                             <option value="郵局">郵局</option>
                             <option value="國泰">國泰</option>
                             <option value="華南">華南</option>
@@ -340,56 +407,48 @@
                         </select>
                     </div>
 
-                    <div id="fg-expenseAmount" class="form-group" style="margin-bottom: 15px; display: block;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">支出金額</label>
-                        <input type="number" id="form-expenseAmount" placeholder="輸入金額"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div id="fg-expenseAmount" class="form-group" style="display: block;">
+                        <label>支出金額</label>
+                        <input type="number" id="form-expenseAmount" placeholder="請輸入金額">
                     </div>
 
-                    <div id="fg-incomeAmount" class="form-group" style="margin-bottom: 15px; display: none;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">收入金額</label>
-                        <input type="number" id="form-incomeAmount" placeholder="輸入金額"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div id="fg-incomeAmount" class="form-group" style="display: none;">
+                        <label>收入金額</label>
+                        <input type="number" id="form-incomeAmount" placeholder="請輸入金額">
                     </div>
 
-                    <div id="fg-note" class="form-group" style="margin-bottom: 20px; display: block;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">備註說明</label>
-                        <input type="text" id="form-note" placeholder="選填"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div id="fg-note" class="form-group" style="display: block;">
+                        <label>備註說明</label>
+                        <input type="text" id="form-note" placeholder="選填">
                     </div>
                 </div>
 
                 <div id="group-transfer" style="display: none;">
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">轉出帳戶</label>
-                        <select id="form-transferOut"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div class="form-group">
+                        <label>轉出帳戶</label>
+                        <select id="form-transferOut">
                             <option value="郵局">郵局</option>
                             <option value="國泰">國泰</option>
                             <option value="華南">華南</option>
                             <option value="錢包">錢包</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin-bottom: 15px;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">轉入帳戶</label>
-                        <select id="form-transferIn"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div class="form-group">
+                        <label>轉入帳戶</label>
+                        <select id="form-transferIn">
                             <option value="郵局">郵局</option>
                             <option value="國泰">國泰</option>
                             <option value="華南">華南</option>
                             <option value="錢包">錢包</option>
                         </select>
                     </div>
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">轉帳金額</label>
-                        <input type="number" id="form-transferAmount" placeholder="輸入轉帳金額"
-                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    <div class="form-group">
+                        <label>轉帳金額</label>
+                        <input type="number" id="form-transferAmount" placeholder="請輸入轉帳金額">
                     </div>
                 </div>
 
-                <button id="btn-submit" onclick="submitRecord()"
-                    style="width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">💾
-                    儲存紀錄</button>
+                <button id="btn-submit" class="submit-btn" onclick="submitRecord()">💾 儲存紀錄</button>
             </div>
         </div>
 
@@ -628,6 +687,23 @@
                 btn.innerText = "💾 儲存紀錄";
                 btn.disabled = false;
             }
+        }
+        // 處理雙按鈕的點擊切換與外觀更新
+        function setTransactionType(type) {
+            // 更新隱藏的值
+            document.getElementById('form-transactionType').value = type;
+
+            // 切換按鈕的 Active 狀態 (外觀)
+            if (type === '一般收支') {
+                document.getElementById('btn-general').classList.add('active');
+                document.getElementById('btn-transfer').classList.remove('active');
+            } else {
+                document.getElementById('btn-transfer').classList.add('active');
+                document.getElementById('btn-general').classList.remove('active');
+            }
+
+            // 呼叫原本的隱藏/顯示邏輯
+            updateFormVisibility();
         }
     </script>
 
