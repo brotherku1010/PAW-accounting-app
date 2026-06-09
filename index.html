@@ -386,6 +386,57 @@
         window.onload = function () {
             updateMonthDisplay();
         };
+        // 自動將日期預設為今天
+        document.getElementById('record-date').valueAsDate = new Date();
+
+        // 3. 送出記帳資料到 GAS (API 串接)
+        async function submitRecord() {
+            // 已經為您替換為專屬的 GAS API 網址
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            const type = document.getElementById('record-type').value;
+            const date = document.getElementById('record-date').value;
+            const category = document.getElementById('record-category').value;
+            const amount = document.getElementById('record-amount').value;
+            const note = document.getElementById('record-note').value;
+            const btn = document.getElementById('btn-submit');
+
+            if (!date || !amount) {
+                alert("請填寫日期與金額！");
+                return;
+            }
+
+            // 鎖定按鈕，顯示載入中
+            btn.innerText = "⏳ 儲存中...";
+            btn.disabled = true;
+
+            const payload = { type, date, category, amount, note };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    // 處理跨域請求的常見寫法，確保 GAS 能正確接收
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("✅ 記帳成功！");
+                    document.getElementById('record-amount').value = ''; // 清空金額
+                    document.getElementById('record-note').value = '';   // 清空備註
+                    switchPage('page-home'); // 回到首頁
+                } else {
+                    alert("❌ 發生錯誤：" + result.message);
+                }
+            } catch (error) {
+                alert("❌ 網路連線錯誤：" + error.message);
+            } finally {
+                // 恢復按鈕狀態
+                btn.innerText = "💾 儲存記帳";
+                btn.disabled = false;
+            }
+        }
     </script>
 
 </body>
