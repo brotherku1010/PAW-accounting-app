@@ -275,45 +275,121 @@
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
                 <h2>新增記帳</h2>
             </div>
+
             <div
                 style="background: var(--card-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">類型</label>
-                    <select id="record-type"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
-                        <option value="支出">📤 支出</option>
-                        <option value="收入">📥 收入</option>
-                    </select>
-                </div>
-                <div style="margin-bottom: 15px;">
+
+                <div class="form-group" style="margin-bottom: 15px;">
                     <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">日期</label>
-                    <input type="date" id="record-date"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+                    <input type="date" id="form-date"
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
                 </div>
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">分類</label>
-                    <select id="record-category"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
-                        <option value="餐飲">餐飲</option>
-                        <option value="交通">交通</option>
-                        <option value="購物">購物</option>
-                        <option value="薪資">薪資</option>
-                        <option value="其他">其他</option>
+
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">交易類型</label>
+                    <select id="form-transactionType" onchange="updateFormVisibility()"
+                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                        <option value="一般收支">一般收支</option>
+                        <option value="帳戶戶轉">帳戶戶轉</option>
                     </select>
                 </div>
-                <div style="margin-bottom: 15px;">
-                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">金額</label>
-                    <input type="number" id="record-amount" placeholder="請輸入金額"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+
+                <div id="group-general" style="display: block;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">收支類型</label>
+                        <select id="form-incomeExpenseType" onchange="updateFormVisibility()"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                            <option value="支出">📤 支出</option>
+                            <option value="收入">📥 收入</option>
+                            <option value="還款收入">🔙 還款收入</option>
+                        </select>
+                    </div>
+
+                    <div id="fg-category" class="form-group" style="margin-bottom: 15px; display: block;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">帳目類型</label>
+                        <select id="form-category"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                            <option value="生活費">生活費</option>
+                            <option value="必要支出">必要支出</option>
+                            <option value="儲蓄投資">儲蓄投資</option>
+                            <option value="娛樂">娛樂</option>
+                            <option value="奉獻">奉獻</option>
+                        </select>
+                    </div>
+
+                    <div id="fg-paymentType" class="form-group" style="margin-bottom: 15px; display: block;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">支付類型</label>
+                        <select id="form-paymentType"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                            <option value="郵局">郵局</option>
+                            <option value="國泰">國泰</option>
+                            <option value="華南">華南</option>
+                            <option value="錢包">錢包</option>
+                            <option value="信用卡">信用卡</option>
+                        </select>
+                    </div>
+
+                    <div id="fg-incomeAccount" class="form-group" style="margin-bottom: 15px; display: none;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">收入帳目</label>
+                        <select id="form-incomeAccount"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                            <option value="郵局">郵局</option>
+                            <option value="國泰">國泰</option>
+                            <option value="華南">華南</option>
+                            <option value="錢包">錢包</option>
+                        </select>
+                    </div>
+
+                    <div id="fg-expenseAmount" class="form-group" style="margin-bottom: 15px; display: block;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">支出金額</label>
+                        <input type="number" id="form-expenseAmount" placeholder="輸入金額"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    </div>
+
+                    <div id="fg-incomeAmount" class="form-group" style="margin-bottom: 15px; display: none;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">收入金額</label>
+                        <input type="number" id="form-incomeAmount" placeholder="輸入金額"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    </div>
+
+                    <div id="fg-note" class="form-group" style="margin-bottom: 20px; display: block;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">備註說明</label>
+                        <input type="text" id="form-note" placeholder="選填"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    </div>
                 </div>
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">備註 (選填)</label>
-                    <input type="text" id="record-note" placeholder="例如：買咖啡"
-                        style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+
+                <div id="group-transfer" style="display: none;">
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">轉出帳戶</label>
+                        <select id="form-transferOut"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                            <option value="郵局">郵局</option>
+                            <option value="國泰">國泰</option>
+                            <option value="華南">華南</option>
+                            <option value="錢包">錢包</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">轉入帳戶</label>
+                        <select id="form-transferIn"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                            <option value="郵局">郵局</option>
+                            <option value="國泰">國泰</option>
+                            <option value="華南">華南</option>
+                            <option value="錢包">錢包</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label style="display:block; margin-bottom: 5px; color: var(--text-muted);">轉帳金額</label>
+                        <input type="number" id="form-transferAmount" placeholder="輸入轉帳金額"
+                            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box;">
+                    </div>
                 </div>
+
                 <button id="btn-submit" onclick="submitRecord()"
-                    style="width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">💾
-                    儲存記帳</button>
+                    style="width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold;">💾
+                    儲存紀錄</button>
             </div>
         </div>
 
@@ -446,6 +522,112 @@
                     .then(reg => console.log('Service Worker 註冊成功！', reg))
                     .catch(err => console.log('Service Worker 註冊失敗：', err));
             });
+        }
+        // 設定今天的日期為預設值
+        document.getElementById('form-date').valueAsDate = new Date();
+
+        // 控制表單欄位「顯示 / 隱藏」的動態邏輯
+        function updateFormVisibility() {
+            const transType = document.getElementById('form-transactionType').value;
+            const groupGeneral = document.getElementById('group-general');
+            const groupTransfer = document.getElementById('group-transfer');
+
+            if (transType === '帳戶戶轉') {
+                groupGeneral.style.display = 'none';
+                groupTransfer.style.display = 'block';
+            } else {
+                groupGeneral.style.display = 'block';
+                groupTransfer.style.display = 'none';
+
+                const ieType = document.getElementById('form-incomeExpenseType').value;
+                // 先隱藏一般收支裡的所有細項
+                ['fg-category', 'fg-paymentType', 'fg-incomeAccount', 'fg-expenseAmount', 'fg-incomeAmount'].forEach(id => {
+                    document.getElementById(id).style.display = 'none';
+                });
+
+                // 依據收支類型顯示對應欄位
+                if (ieType === '支出') {
+                    document.getElementById('fg-category').style.display = 'block';
+                    document.getElementById('fg-paymentType').style.display = 'block';
+                    document.getElementById('fg-expenseAmount').style.display = 'block';
+                } else if (ieType === '收入') {
+                    document.getElementById('fg-incomeAccount').style.display = 'block';
+                    document.getElementById('fg-incomeAmount').style.display = 'block';
+                } else if (ieType === '還款收入') {
+                    document.getElementById('fg-category').style.display = 'block';
+                    document.getElementById('fg-incomeAccount').style.display = 'block';
+                    document.getElementById('fg-incomeAmount').style.display = 'block';
+                }
+            }
+        }
+
+        // 將資料打包並送出給 GAS
+        async function submitRecord() {
+            // ★★★ 請保留您最新的 GAS Web App 網址 ★★★
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            const btn = document.getElementById('btn-submit');
+            const payload = {}; // 準備要送出的資料包
+
+            payload.date = document.getElementById('form-date').value;
+            payload.transactionType = document.getElementById('form-transactionType').value;
+
+            // 檢查防呆邏輯並打包對應資料
+            if (payload.transactionType === '帳戶戶轉') {
+                payload.transferOut = document.getElementById('form-transferOut').value;
+                payload.transferIn = document.getElementById('form-transferIn').value;
+                payload.transferAmount = document.getElementById('form-transferAmount').value;
+                if (!payload.transferAmount) return alert("請輸入轉帳金額！");
+                if (payload.transferOut === payload.transferIn) return alert("轉出與轉入不能是同一個帳戶！");
+            } else {
+                payload.incomeExpenseType = document.getElementById('form-incomeExpenseType').value;
+                payload.note = document.getElementById('form-note').value;
+
+                if (payload.incomeExpenseType === '支出') {
+                    payload.category = document.getElementById('form-category').value;
+                    payload.paymentType = document.getElementById('form-paymentType').value;
+                    payload.expenseAmount = document.getElementById('form-expenseAmount').value;
+                    if (!payload.expenseAmount) return alert("請輸入支出金額！");
+                } else if (payload.incomeExpenseType === '收入') {
+                    payload.incomeAccount = document.getElementById('form-incomeAccount').value;
+                    payload.incomeAmount = document.getElementById('form-incomeAmount').value;
+                    if (!payload.incomeAmount) return alert("請輸入收入金額！");
+                } else if (payload.incomeExpenseType === '還款收入') {
+                    payload.category = document.getElementById('form-category').value;
+                    payload.incomeAccount = document.getElementById('form-incomeAccount').value;
+                    payload.incomeAmount = document.getElementById('form-incomeAmount').value;
+                    if (!payload.incomeAmount) return alert("請輸入收入金額！");
+                }
+            }
+
+            // 鎖定按鈕
+            btn.innerText = "⏳ 儲存中...";
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    alert("✅ 記帳成功！");
+                    // 清空輸入框
+                    document.getElementById('form-expenseAmount').value = '';
+                    document.getElementById('form-incomeAmount').value = '';
+                    document.getElementById('form-transferAmount').value = '';
+                    document.getElementById('form-note').value = '';
+                    switchPage('page-home');
+                } else {
+                    alert("❌ 發生錯誤：" + result.message);
+                }
+            } catch (error) {
+                alert("❌ 網路連線錯誤：" + error.message);
+            } finally {
+                btn.innerText = "💾 儲存紀錄";
+                btn.disabled = false;
+            }
         }
     </script>
 
