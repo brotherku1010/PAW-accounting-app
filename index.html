@@ -12,22 +12,17 @@
     <style>
         /* ================= 系統共用變數與全域設定 ================= */
         :root {
-            --primary: #8a2be2;
-            /* 主色調：質感紫 (BlueViolet) */
-            --secondary: #5e1c9e;
-            /* 次色調：深邃紫 */
+            /* 主色調：#9F35FF 搭配 70% 透明度 */
+            --primary: rgba(159, 53, 255, 0.7);
+            /* 次色調：保留稍微深一點的紫色用來做漸層搭配 */
+            --secondary: rgba(159, 53, 255, 0.9);
             --bg: #f2f4f6;
-            /* 系統背景色 */
             --card-bg: #ffffff;
-            /* 卡片背景色 */
             --text-main: #333333;
             --text-muted: #666666;
-            /* 加深一點讓字體更易讀 */
-            --red: #e74c3c;
-            --green: #2ecc71;
         }
 
-        /* 嚴格限制所有元素的 padding 不會撐破寬度 */
+        /* 確保所有元素都不會撐破寬度 */
         * {
             box-sizing: border-box;
         }
@@ -237,12 +232,19 @@
         .form-group input,
         .form-group select {
             width: 100%;
+            max-width: 100%;
+            /* 強制最大寬度不超過父元素 */
+            margin: 0;
+            /* 消除瀏覽器預設外距 */
             padding: 12px 15px;
             border-radius: 10px;
             border: 1px solid #ccc;
             font-size: 16px;
             font-family: inherit;
             background-color: #fafafa;
+            box-sizing: border-box;
+            /* 嚴格計算邊框 */
+            display: block;
         }
 
         .form-group input:focus,
@@ -259,6 +261,8 @@
             background: #f0f0f0;
             border-radius: 12px;
             padding: 5px;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .toggle-btn {
@@ -266,16 +270,20 @@
             text-align: center;
             padding: 12px 0;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
+            /* 稍微縮小一點點，確保塞得下三個按鈕 */
             font-weight: bold;
             color: var(--text-muted);
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap;
+            /* 防止文字換行 */
         }
 
         .toggle-btn.active {
             background: var(--card-bg);
-            color: var(--primary);
+            color: #9F35FF;
+            /* 啟動時文字使用實心紫，確保清晰度 */
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
@@ -366,13 +374,15 @@
                 </div>
 
                 <div id="group-general" style="display: block;">
+
                     <div class="form-group">
                         <label>收支類型</label>
-                        <select id="form-incomeExpenseType" onchange="updateFormVisibility()">
-                            <option value="支出">📤 支出</option>
-                            <option value="收入">📥 收入</option>
-                            <option value="還款收入">🔙 還款收入</option>
-                        </select>
+                        <div class="toggle-group">
+                            <div class="toggle-btn active" id="btn-ie-expense" onclick="setIEType('支出')">支出</div>
+                            <div class="toggle-btn" id="btn-ie-income" onclick="setIEType('收入')">收入</div>
+                            <div class="toggle-btn" id="btn-ie-repay" onclick="setIEType('還款收入')">還款收入</div>
+                        </div>
+                        <input type="hidden" id="form-incomeExpenseType" value="支出">
                     </div>
 
                     <div id="fg-category" class="form-group" style="display: block;">
@@ -703,6 +713,27 @@
             }
 
             // 呼叫原本的隱藏/顯示邏輯
+            updateFormVisibility();
+        }
+        function setIEType(type) {
+            // 更新隱藏的值
+            document.getElementById('form-incomeExpenseType').value = type;
+
+            // 先移除所有按鈕的 active 狀態
+            document.getElementById('btn-ie-expense').classList.remove('active');
+            document.getElementById('btn-ie-income').classList.remove('active');
+            document.getElementById('btn-ie-repay').classList.remove('active');
+
+            // 根據選取的類型加上 active 狀態
+            if (type === '支出') {
+                document.getElementById('btn-ie-expense').classList.add('active');
+            } else if (type === '收入') {
+                document.getElementById('btn-ie-income').classList.add('active');
+            } else if (type === '還款收入') {
+                document.getElementById('btn-ie-repay').classList.add('active');
+            }
+
+            // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
             updateFormVisibility();
         }
     </script>
