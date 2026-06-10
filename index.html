@@ -806,9 +806,20 @@
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
                 <h2>原始資料</h2>
-                <div id="btn-toggle-edit" onclick="toggleRawDataEditMode()">...</div>
+                <div id="btn-toggle-edit"
+                    style="margin-left:auto; font-size:22px; cursor:pointer; color: var(--text-muted);"
+                    onclick="toggleRawDataEditMode()">
+                    <span class="material-symbols-outlined">edit</span>
+                </div>
             </div>
-            <div id="raw-data-container"></div>
+
+            <div id="raw-data-container">
+                <div class="placeholder-box">等待載入資料...</div>
+            </div>
+
+            <div id="raw-data-pagination"
+                style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding: 10px 5px; border-top: 1px solid rgba(255,255,255,0.05);">
+            </div>
         </div>
 
         <div id="toast-msg"
@@ -1530,57 +1541,6 @@
                 container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路錯誤，請稍後再試。</div>`;
             }
         }
-
-        // 將拿到的明細陣列畫到畫面上
-        function renderDetailsHTML(records, container) {
-            if (records.length === 0) {
-                container.innerHTML = `<div class="placeholder-box">這個月沒有「${document.querySelector('#page-details .toggle-btn.active').innerText}」的紀錄喔！</div>`;
-                return;
-            }
-
-            let html = '';
-            records.forEach(row => {
-                // 根據您的欄位：日期[0], 月份[1], 項目[2], 帳目[3], 備註說明[4], 金額[5], 支出帳戶[6], 入款帳戶[7]
-                const date = row[0];
-                const type = row[2];
-                const category = row[3];
-                const note = row[4];
-                const amount = row[5];
-                const outAcc = row[6];
-                const inAcc = row[7];
-
-                // 智慧判斷帳戶顯示 (若有轉出有轉入就是「互轉」，否則單獨顯示)
-                let accountStr = "";
-                if (outAcc && inAcc) accountStr = `${outAcc} ➔ ${inAcc}`;
-                else if (outAcc) accountStr = `出: ${outAcc}`;
-                else if (inAcc) accountStr = `入: ${inAcc}`;
-
-                html += `
-            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 15px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
-                
-                <div style="display: flex; gap: 15px; align-items: center;">
-                    <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 10px; text-align: center; min-width: 60px; border: 1px solid rgba(255,255,255,0.05);">
-                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">${row[1]}</div>
-                        <div style="font-size: 14px; font-weight: bold; color: #d6a5ff;">${date.split('/').pop() || date}</div> </div>
-                    
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <span style="font-size: 16px; font-weight: bold; color: white; letter-spacing: 0.5px;">${category}</span>
-                        <div style="font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px;">
-                            ${accountStr ? `<span>🏦 ${accountStr}</span>` : ''}
-                            ${note ? `<span>📝 ${note}</span>` : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="font-size: 18px; font-weight: bold; font-family: monospace; color: white;">
-                    $${amount}
-                </div>
-            </div>`;
-            });
-
-            container.innerHTML = html;
-        }
-
         // ================= 第三大項-支出報告圖，控制系統 =================
 
         let myChartInstance = null;  // 用來存放圖表實例的全域變數
@@ -1722,28 +1682,31 @@
         // ================= 原始資料控制系統 =================
         let isRawDataEditMode = false;
         let cachedRawData = [];
+        let currentRawDataPage = 1;
+        const itemsPerPage = 10; // 每頁限制 10 筆資料
 
         // 1. 開關編輯模式
         function toggleRawDataEditMode() {
             isRawDataEditMode = !isRawDataEditMode;
             const editBtn = document.getElementById('btn-toggle-edit');
-
-            if (isRawDataEditMode) {
-                editBtn.style.color = '#ff7675'; // 編輯模式變為紅色
-                editBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span>';
-            } else {
-                editBtn.style.color = 'var(--text-muted)';
-                editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+            if (editBtn) {
+                if (isRawDataEditMode) {
+                    editBtn.style.color = '#ff7675';
+                    editBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span>';
+                } else {
+                    editBtn.style.color = 'var(--text-muted)';
+                    editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+                }
             }
-
-            // 重新渲染畫面以顯示/隱藏刪除按鈕
-            renderRawDataHTML();
+            renderRawDataHTML(); // 重新渲染當前頁面
         }
 
         // 2. 讀取原始資料
         async function loadRawData() {
             const container = document.getElementById('raw-data-container');
+            const paginationContainer = document.getElementById('raw-data-pagination');
             container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
+            if (paginationContainer) paginationContainer.innerHTML = ''; // 載入時先隱藏分頁鈕
 
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
@@ -1753,6 +1716,7 @@
 
                 if (result.success) {
                     cachedRawData = result.data;
+                    currentRawDataPage = 1; // 每次重新載入原始資料時，一律重置回第 1 頁
                     renderRawDataHTML();
                 } else {
                     container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
@@ -1762,7 +1726,149 @@
             }
         }
 
-        // 3. 渲染資料清單
+        // 3. 智慧動態卡片渲染與分頁控制 (核心引擎)
+        function renderRawDataHTML() {
+            const container = document.getElementById('raw-data-container');
+            const paginationContainer = document.getElementById('raw-data-pagination');
+
+            if (cachedRawData.length === 0) {
+                container.innerHTML = `<div class="placeholder-box">資料庫目前沒有任何紀錄喔！</div>`;
+                if (paginationContainer) paginationContainer.innerHTML = '';
+                return;
+            }
+
+            // ─── 分頁核心計算 ───
+            const totalPages = Math.ceil(cachedRawData.length / itemsPerPage);
+            if (currentRawDataPage > totalPages) currentRawDataPage = totalPages;
+            if (currentRawDataPage < 1) currentRawDataPage = 1;
+
+            // 切出當前頁面該顯示的 10 筆區間
+            const startIndex = (currentRawDataPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentPageData = cachedRawData.slice(startIndex, endIndex);
+
+            let html = '';
+            currentPageData.forEach(row => {
+                // 對接欄位索引
+                const id = row[0];
+                const type = row[2];
+                const transferAmount = row[3];
+                const transferOut = row[4];
+                const transferIn = row[5];
+                const date = row[6];
+                const incomeCategory = row[8];
+                const incomeAmount = row[9];
+                const expenseCategory = row[10];
+                const note = row[11];
+                const expenseAmount = row[13];
+
+                let themeColor = '#b864ff';
+                if (type === '支出') themeColor = '#ff7675';
+                if (type === '收入') themeColor = '#2ecc71';
+                if (type === '轉帳') themeColor = '#3498db';
+
+                // 💡 智慧防呆判定：只有當欄位不是空字串、不是 "—" 時，才算有數值
+                const hasValue = (val) => val && val.toString().trim() !== "" && val.toString().trim() !== "—" && val.toString().trim() !== "0";
+
+                // 💡 動態收集「有數值」的欄位 HTML，移除排序編號 [x] 標籤
+                let bodyFieldsHtml = '';
+
+                if (hasValue(expenseAmount)) {
+                    bodyFieldsHtml += `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🔺 支出金額</span>
+                        <span style="color: #ff7675; font-weight: bold; font-family: monospace; font-size:15px;">$${expenseAmount}</span>
+                    </div>`;
+                }
+                if (hasValue(expenseCategory)) {
+                    bodyFieldsHtml += `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏷️ 帳目類型</span>
+                        <span style="color: white; font-weight: 500; font-size:14px;">${expenseCategory}</span>
+                    </div>`;
+                }
+                if (hasValue(incomeAmount)) {
+                    bodyFieldsHtml += `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🟢 收入金額</span>
+                        <span style="color: #2ecc71; font-weight: bold; font-family: monospace; font-size:15px;">$${incomeAmount}</span>
+                    </div>`;
+                }
+                if (hasValue(incomeCategory)) {
+                    bodyFieldsHtml += `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏷️ 收入帳目</span>
+                        <span style="color: white; font-weight: 500; font-size:14px;">${incomeCategory}</span>
+                    </div>`;
+                }
+                if (hasValue(transferAmount)) {
+                    // 轉帳金額通常很重要，給予橫跨兩欄滿版設計
+                    bodyFieldsHtml += `
+                    <div style="grid-column: span 2; background: rgba(36,152,219,0.05); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(52,152,219,0.15);">
+                        <span style="font-size:11px; color: #3498db; display:block; margin-bottom:2px;">🔵 轉帳金額</span>
+                        <span style="color: white; font-weight: bold; font-family: monospace; font-size:15px;">$${transferAmount}</span>
+                    </div>`;
+                }
+                if (hasValue(transferOut)) {
+                    bodyFieldsHtml += `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">走 轉出帳戶</span>
+                        <span style="color: white; font-size:14px;">${transferOut}</span>
+                    </div>`;
+                }
+                if (hasValue(transferIn)) {
+                    bodyFieldsHtml += `
+                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">入 轉入帳戶</span>
+                        <span style="color: white; font-size:14px;">${transferIn}</span>
+                    </div>`;
+                }
+
+                // 組裝獨立卡片
+                html += `
+            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 18px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 13px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px;">📅 ${date}</span>
+                        <span style="background: ${themeColor}15; border: 1px solid ${themeColor}40; color: ${themeColor}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${type}</span>
+                    </div>
+                    
+                    <div onclick="executeDeleteRecord('${id}')" style="display: ${isRawDataEditMode ? 'flex' : 'none'}; width: 34px; height: 34px; background: rgba(255, 118, 117, 0.15); border-radius: 8px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
+                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px;">
+                    ${bodyFieldsHtml}
+                </div>
+
+                ${hasValue(note) ? `
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.05); font-size: 16px; color: #e2e8f0; display: flex; gap: 6px; align-items: flex-start;">
+                    <span style="color: var(--text-muted); shrink: 0; font-size: 13px; margin-top: 3px;">📝 備註:</span>
+                    <span style="word-break: break-all; line-height: 1.4; font-weight: bold; color: #ffffff;">${note}</span>
+                </div>` : ''}
+
+            </div>`;
+            });
+
+            container.innerHTML = html;
+
+            // ─── 💡 調整 5：渲染科技感分頁按鈕 ───
+            if (paginationContainer) {
+                paginationContainer.innerHTML = `
+                <button onclick="changeRawDataPage(-1)" ${currentRawDataPage === 1 ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">❮ 上一頁</button>
+                <span style="color: var(--text-muted); font-size: 14px; font-weight: bold; font-family: monospace; letter-spacing: 0.5px;">第 ${currentRawDataPage} / ${totalPages} 頁</span>
+                <button onclick="changeRawDataPage(1)" ${currentRawDataPage === totalPages ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">下一頁 ❯</button>
+            `;
+            }
+        }
+        function changeRawDataPage(delta) {
+            currentRawDataPage += delta;
+            renderRawDataHTML();
+            // 切換頁面時，自動幫使用者平滑捲動回手機框架最上方，操作最流暢
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
         // 3. 渲染原始資料清單 (10欄位精準完整排版版)
         function renderRawDataHTML() {
             const container = document.getElementById('raw-data-container');
