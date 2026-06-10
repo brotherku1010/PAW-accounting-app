@@ -972,10 +972,11 @@
                 if (result.success) {
                     const data = result.data;
 
-                    // 💡 調整 1：將「本月總收入」字樣改為直接用金額顯示（data.totalIncome[1] 是總收入金額）
+                    // 💡 調整 1：補回「本月總收入」字樣，並修正資料讀取位置為 C2 (索引 2)
                     let html = `
                     <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); padding: 18px; border-radius: 16px; margin-bottom: 25px; text-align:center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
-                        <div style="font-size: 24px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[1]}</div>
+                        <div style="font-size: 14px; color: #2ecc71; opacity: 0.9; margin-bottom: 5px; letter-spacing: 1px;">本月總收入</div>
+                        <div style="font-size: 28px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[2]}</div>
                     </div>
                 `;
 
