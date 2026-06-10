@@ -560,8 +560,34 @@
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
                 <h2>收支報表</h2>
+                <div style="margin-left:auto; font-size:24px; cursor:pointer;" onclick="openBudgetEdit()">⚙️</div>
             </div>
-            <div class="placeholder-box">這裡將顯示本月的各項財務統計數據</div>
+
+            <div id="report-container">
+                <div class="placeholder-box">資料讀取中...</div>
+            </div>
+        </div>
+
+        <div id="page-budget-edit" class="page">
+            <div class="page-header">
+                <div class="back-btn" onclick="switchPage('page-report')">❮</div>
+                <h2>設定項目與預算</h2>
+            </div>
+
+            <div
+                style="background: var(--card-bg); padding: 20px; border-radius: 16px; border: 1px solid var(--card-border);">
+                <div id="budget-items-list">
+                </div>
+
+                <button onclick="addBudgetRow()"
+                    style="width:100%; padding:10px; margin-top:10px; background:transparent; border:1px dashed #d6a5ff; color:#d6a5ff; border-radius:10px; cursor:pointer;">＋
+                    新增項目</button>
+
+                <div id="budget-total-indicator"
+                    style="text-align:center; margin: 20px 0; font-weight:bold; font-size:18px;">總預算比例：0%</div>
+
+                <button id="btn-save-budget" class="submit-btn" onclick="saveBudgetSettings()">💾 儲存並寫入公式</button>
+            </div>
         </div>
 
         <div id="page-details" class="page">
@@ -908,6 +934,140 @@
                 }
             } catch (error) {
                 console.log("無法召喚恐龍：", error);
+            }
+        }
+        // ================= 報表與預算設定邏輯 =================
+
+        // 1. 讀取並渲染報表
+        async function loadReport() {
+            const container = document.getElementById('report-container');
+            container.innerHTML = `<div class="placeholder-box">⏳ 正在計算當月報表...</div>`;
+
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                const response = await fetch(API_URL + "?action=getReport");
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+                    // 繪製總收入卡片
+                    let html = `
+                    <div style="background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align:center;">
+                        <div style="font-size:14px; color:#2ecc71;">本月總收入</div>
+                        <div style="font-size:28px; font-weight:bold; color:white;">$${data.totalIncome[1]}</div>
+                    </div>
+                `;
+
+                    // 繪製各項目卡片
+                    data.items.forEach(item => {
+                        html += `
+                    <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
+                            <span style="font-weight:bold; color:#d6a5ff; font-size:18px;">${item[0]} (${item[1]})</span>
+                            <span style="color:white; font-weight:bold;">餘: $${item[5]}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text-muted);">
+                            <span>預算: $${item[2]}</span>
+                            <span>支出: $${item[3]}</span>
+                            <span>上月: $${item[4]}</span>
+                        </div>
+                    </div>`;
+                    });
+
+                    // 繪製總結餘卡片
+                    html += `
+                    <div style="background: linear-gradient(135deg, rgba(159,53,255,0.4), rgba(89,28,158,0.6)); border: 1px solid #d6a5ff; padding: 15px; border-radius: 12px; margin-top: 20px; text-align:center;">
+                        <div style="font-size:14px; color:#e0e0e0;">總餘額</div>
+                        <div style="font-size:32px; font-weight:bold; color:white;">$${data.totalBalance[5]}</div>
+                    </div>
+                `;
+                    container.innerHTML = html;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">讀取失敗，請確認網路連線。</div>`;
+            }
+        }
+
+        // 2. 開啟編輯面板 (帶入空欄位或舊資料)
+        let editingItems = [];
+        function openBudgetEdit() {
+            switchPage('page-budget-edit');
+            // 這裡您可以預設帶入幾筆，或是先給一筆空的
+            editingItems = [{ name: "生活費", ratio: 50 }];
+            renderBudgetRows();
+        }
+
+        function addBudgetRow() {
+            if (editingItems.length >= 19) return alert("最多只能設定 19 個項目喔！");
+            editingItems.push({ name: "", ratio: 0 });
+            renderBudgetRows();
+        }
+
+        function removeBudgetRow(index) {
+            editingItems.splice(index, 1);
+            renderBudgetRows();
+        }
+
+        function renderBudgetRows() {
+            const list = document.getElementById('budget-items-list');
+            list.innerHTML = "";
+            let totalRatio = 0;
+
+            editingItems.forEach((item, idx) => {
+                totalRatio += Number(item.ratio);
+                list.innerHTML += `
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                    <input type="text" placeholder="項目名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
+                    <input type="number" placeholder="%" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
+                    <div style="color:var(--red); font-size:24px; cursor:pointer;" onclick="removeBudgetRow(${idx})">✖</div>
+                </div>
+            `;
+            });
+
+            // 100% 防呆檢查
+            const indicator = document.getElementById('budget-total-indicator');
+            const btn = document.getElementById('btn-save-budget');
+            indicator.innerText = `總預算比例：${totalRatio}%`;
+
+            if (totalRatio === 100) {
+                indicator.style.color = "var(--green)";
+                btn.disabled = false;
+                btn.style.opacity = "1";
+            } else {
+                indicator.style.color = "var(--red)";
+                btn.disabled = true;
+                btn.style.opacity = "0.5"; // 沒達到 100% 按鈕反灰
+            }
+        }
+
+        // 3. 儲存設定到後端
+        async function saveBudgetSettings() {
+            const btn = document.getElementById('btn-save-budget');
+            btn.innerText = "⏳ 寫入公式中...";
+
+            // 整理資料：將 50% 轉為 0.5 送給試算表
+            const payloadItems = editingItems.map(item => ({
+                name: item.name,
+                ratio: Number(item.ratio) / 100
+            }));
+
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "updateBudget", items: payloadItems })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert("✅ 設定完成！公式已全面更新。");
+                    switchPage('page-report');
+                    loadReport(); // 重新讀取新報表
+                }
+            } catch (error) {
+                alert("❌ 儲存失敗：" + error.message);
+            } finally {
+                btn.innerText = "💾 儲存並寫入公式";
             }
         }
     </script>
