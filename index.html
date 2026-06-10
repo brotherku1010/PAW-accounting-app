@@ -876,11 +876,12 @@
     <script>
         // 網頁載入時觸發的初始設定
         window.addEventListener('load', () => {
-            updateMonthDisplay(); // 更新頂部月份顯示
-            spawnRandomDino();    // 召喚雲端恐龍 
-            refreshHomeScreenUI(); // 網頁初始化載入時
+            updateMonthDisplay();
+            spawnRandomDino();
 
-            // 如果一打開網頁就在報表頁，就先讀取一次
+            // 初始化載入主畫面動態屏幕
+            refreshHomeScreenUI();
+
             if (document.getElementById('page-report').classList.contains('active')) {
                 loadReport();
             }
@@ -940,41 +941,55 @@
 
         // 💡 修復 2：頁面切換引擎 (加入自動觸發讀取報表的功能)
         function switchPage(pageId) {
-            // 1. 檢查目標頁面是否存在
             const targetPage = document.getElementById(pageId);
             if (!targetPage) {
-                console.error("找不到頁面 ID:", pageId);
+                console.error(`❌ 找不到區塊 ID: ${pageId}`);
                 return;
             }
 
-            // 2. 隱藏所有頁面
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-
-            // 3. 顯示目標頁面
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
             targetPage.classList.add('active');
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
-            // 4. 各頁面觸發邏輯
+            // A. 前往收支報表
             if (pageId === 'page-report') loadReport();
+            // B. 前往明細
             if (pageId === 'page-details') loadDetails('全部');
+            // C. 前往圖表
             if (pageId === 'page-chart') loadChartData();
 
-            // 原始資料頁面處理
+            // D. 前往原始資料
             if (pageId === 'page-raw-data') {
-                // 先確保編輯模式是關閉的
                 isRawDataEditMode = false;
                 const editBtn = document.getElementById('btn-toggle-edit');
                 if (editBtn) {
                     editBtn.style.color = 'var(--text-muted)';
                     editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
                 }
-                // 延遲一點點執行，確保 HTML DOM 已經渲染完成
-                setTimeout(loadRawData, 100);
+                loadRawData();
+            }
+
+            // E. 返回或前往「主畫面首頁」
+            if (pageId === 'page-home') {
+                // 如果剛新增完記帳或刪除過資料 (Dirty === true)，在返回首頁時，強制在背景發起靜態更新
+                if (isReportDataDirty) {
+                    (async () => {
+                        const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                        try {
+                            const response = await fetch(API_URL + "?action=getReport");
+                            const result = await response.json();
+                            if (result.success) {
+                                cachedReportData = result.data;
+                                isReportDataDirty = false;
+                                refreshHomeScreenUI(); // 拿到最新運算結果，即時沖刷螢幕！
+                            }
+                        } catch (err) { console.error("背景刷新失敗:", err); }
+                    })();
+                } else {
+                    refreshHomeScreenUI();
+                }
             }
         }
-
         function getRandomNonsense() {
             const randomIndex = Math.floor(Math.random() * loadingQuotes.length);
             return loadingQuotes[randomIndex];
@@ -1944,13 +1959,12 @@
             refreshHomeScreenUI();
         }
 
-        // 控制眼睛遮蔽開關
         function toggleAmountVisibility() {
             isAmountHidden = !isAmountHidden;
             const eyeBtn = document.getElementById('btn-privacy-eye');
             if (isAmountHidden) {
                 eyeBtn.innerText = "visibility_off";
-                eyeBtn.style.color = "#ff7675"; // 遮蔽時變成警示紅色
+                eyeBtn.style.color = "#ff7675";
             } else {
                 eyeBtn.innerText = "visibility";
                 eyeBtn.style.color = "#d6a5ff";
@@ -1958,11 +1972,12 @@
             refreshHomeScreenUI();
         }
 
-        // 刷新主畫面屏幕內容的核心引擎
+        // 💡 看板動態渲染主引擎 (補上「我的錢包」真實雲端資料連動)
         function refreshHomeScreenUI() {
             const contentArea = document.getElementById('home-screen-content');
+            if (!contentArea) return; // 防呆
 
-            // 🔹 情況 A：如果是隱藏模式，直接滿版顯示隨機幹話！符合隱私需求
+            // 遮蔽隱私模式：顯示幹話
             if (isAmountHidden) {
                 contentArea.innerHTML = `
                 <div style="text-align: center; font-size: 16px; font-weight: bold; color: #ff7675; font-style: italic; padding: 30px 10px; line-height:1.5;">
@@ -1971,17 +1986,16 @@
                 return;
             }
 
-            // 防呆：如果雲端資料還沒下載下來，顯示載入中
+            // 快取安全檢查
             if (!cachedReportData) {
-                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 請先前往「收支報表」同步雲端運算...</div>`;
+                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 請先前往「收支報表」或點選左右換月以同步雲端資產...</div>`;
                 return;
             }
 
             let html = '';
 
-            // 🔹 情況 B：分類展示屏幕 (讀取收支報表 A2:F22 內算好的數值)
+            // 頁籤 1：項目分類
             if (currentHomeTab === 'category') {
-                // data.totalBalance[5] 是第 22 列算出的 F 欄結餘 (總額)
                 html += `
                 <div style="text-align: center; margin-bottom: 12px;">
                     <span style="font-size:12px; color:rgba(255,255,255,0.6);">本月總資產結餘</span>
@@ -1989,10 +2003,7 @@
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
             `;
-
-                // 從快取中搜尋出生活費、必要支出、儲蓄投資等項目的「結餘數字(項目卡片的 item[5])」
                 cachedReportData.items.forEach(item => {
-                    // item[0] = 項目名稱, item[5] = 結餘
                     html += `
                     <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
                         <span style="color:var(--text-muted);">${item[0]}</span>
@@ -2002,44 +2013,31 @@
                 html += `</div>`;
             }
 
-            // 🔹 情況 C：錢包帳目展示屏幕 (未來如果您的試算表有加開獨立錢包欄位，在此可以直接擴充讀取)
+            // 頁籤 2：💡 錢包帳目 (完全移除寫死數據，真實連動「我的錢包」工作表)
             else if (currentHomeTab === 'wallet') {
-                // 目前先以資產快取與預設範本智慧呈現，華南、國泰、郵局可以從您的初始帳目中連動
                 html += `
                 <div style="text-align: center; margin-bottom: 12px;">
                     <span style="font-size:12px; color:rgba(255,255,255,0.6);">實體資產總計</span>
                     <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">華南銀行</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
-                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">國泰世華</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
-                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">中華郵政</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
-                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">隨身錢包</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
-                </div>
             `;
+
+                if (cachedReportData.wallets && cachedReportData.wallets.length > 0) {
+                    cachedReportData.wallets.forEach(w => {
+                        html += `
+                        <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
+                            <span style="color:var(--text-muted);">${w.name}</span>
+                            <span style="font-weight:bold; font-family:monospace; color:white;">$${w.balance}</span>
+                        </div>`;
+                    });
+                } else {
+                    html += `<div style="grid-column: span 2; text-align:center; color:var(--text-muted);">工作表 '我的錢包' 內無有效資產資料</div>`;
+                }
+                html += `</div>`;
             }
 
             contentArea.innerHTML = html;
-        }
-
-        // 4. 連動原本的頁面切換機制 (在 switchPage 裡面補上重刷首頁)
-        // 請找到 switchPage 函式，在處理 page-home 的地方補上：
-        if (pageId === 'page-home') {
-            // 如果快取過期了，在背景悄悄去下載最新資料更新主畫面
-            if (isReportDataDirty) {
-                (async () => {
-                    const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
-                    const response = await fetch(API_URL + "?action=getReport");
-                    const result = await response.json();
-                    if (result.success) {
-                        cachedReportData = result.data;
-                        isReportDataDirty = false;
-                        refreshHomeScreenUI();
-                    }
-                })();
-            } else {
-                refreshHomeScreenUI(); // 沒過期就直接刷
-            }
         }
     </script>
     <div id="custom-alert-modal" class="custom-modal-overlay">
