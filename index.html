@@ -571,6 +571,16 @@
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
         }
+
+        .home-tab {
+            color: #9aa0a6;
+        }
+
+        .home-tab.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
     </style>
 </head>
 
@@ -586,12 +596,26 @@
                 <button onclick="changeMonth(1)">❯</button>
             </div>
 
-            <div class="balance-card">
-                <div class="title">本月結餘 (淨利潤)</div>
-                <div class="amount" id="balance-amount">$ 15,400</div>
-                <div class="details">
-                    <div>📥 收入: $20,000</div>
-                    <div>📤 支出: $4,600</div>
+            <div
+                style="background: linear-gradient(135deg, rgba(159,53,255,0.25), rgba(89,28,158,0.45)); border: 1px solid rgba(214, 165, 255, 0.3); padding: 20px; border-radius: 20px; margin-bottom: 25px; box-shadow: 0 8px 30px rgba(159, 53, 255, 0.15); position: relative;">
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 10px;">
+                    <div
+                        style="display: flex; background: rgba(0,0,0,0.3); padding: 3px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.04);">
+                        <span id="tab-home-cat" onclick="switchHomeTab('category')"
+                            style="font-size:12px; padding: 5px 12px; border-radius:8px; cursor:pointer; font-weight:bold; transition:all 0.2s;"
+                            class="home-tab active">項目分類</span>
+                        <span id="tab-home-wal" onclick="switchHomeTab('wallet')"
+                            style="font-size:12px; padding: 5px 12px; border-radius:8px; cursor:pointer; font-weight:bold; transition:all 0.2s;"
+                            class="home-tab">錢包帳目</span>
+                    </div>
+                    <span onclick="toggleAmountVisibility()" class="material-symbols-outlined" id="btn-privacy-eye"
+                        style="cursor: pointer; color: #d6a5ff; font-size: 22px; user-select:none;">visibility</span>
+                </div>
+
+                <div id="home-screen-content"
+                    style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
                 </div>
             </div>
 
@@ -853,7 +877,8 @@
         // 網頁載入時觸發的初始設定
         window.addEventListener('load', () => {
             updateMonthDisplay(); // 更新頂部月份顯示
-            spawnRandomDino();    // 召喚雲端恐龍
+            spawnRandomDino();    // 召喚雲端恐龍 
+            refreshHomeScreenUI(); // 網頁初始化載入時
 
             // 如果一打開網頁就在報表頁，就先讀取一次
             if (document.getElementById('page-report').classList.contains('active')) {
@@ -884,6 +909,27 @@
             "台灣競爭力低落，在美國就連小學生都會說流利的英語...",
             "我知道你很冷！但你先不要冷..."
         ];
+
+        // ================= 主畫面金額遮蔽專用語錄 =================
+        const maskedQuotes = [
+            "這裡沒錢，去看報表啦！",
+            "只要我不看餘額，我就是有錢人",
+            "這期威力彩頭獎得主不是我",
+            "談戀愛好麻煩，所以我選擇記帳",
+            "錢沒有消失，只是變成你喜歡的樣子",
+            "我知道你很冷！但你先不要冷",
+            "喜歡一個人太累了，我要喜歡十個！",
+            "只要每天省下一杯奶茶的錢，十天後就能買十杯奶茶"
+        ];
+
+        function getRandomMaskedText() {
+            const idx = Math.floor(Math.random() * maskedQuotes.length);
+            return maskedQuotes[idx];
+        }
+
+        // 全域變數：記錄主畫面看板狀態
+        let isAmountHidden = false;       // 是否隱藏金額 (true = 隱藏)
+        let currentHomeTab = "category";  // 當前顯示類別 ('category' 或 'wallet')
         // 💡 修復 1：確保網頁完全載入後，才去設定預設日期 (防呆機制)
         window.addEventListener('DOMContentLoaded', () => {
             const dateInput = document.getElementById('form-date');
@@ -1083,13 +1129,16 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // ★ 使用精緻浮動視窗取代 alert
+                    // ★ 關鍵修正 1：標記報表與首頁資料全面過期，強迫系統下次重新跟雲端同步
+                    isReportDataDirty = true;
+
                     showCustomAlert("✅", "記帳成功", "您的收支紀錄已寫入雲端！", () => {
-                        // 按下確認後才會執行清空與跳轉
                         document.getElementById('form-expenseAmount').value = '';
                         document.getElementById('form-incomeAmount').value = '';
                         document.getElementById('form-transferAmount').value = '';
                         document.getElementById('form-note').value = '';
+
+                        // ★ 關鍵修正 2：返回首頁並立即重新拉取最新的雲端試算表更新數值
                         switchPage('page-home');
                     });
                 } else {
@@ -1882,6 +1931,115 @@
                     showCustomAlert("❌", "連線錯誤", error.message);
                 }
             });
+        }
+        // 控制主畫面 Tab 切換
+        function switchHomeTab(tabName) {
+            currentHomeTab = tabName;
+            document.getElementById('tab-home-cat').classList.remove('active');
+            document.getElementById('tab-home-wal').classList.remove('active');
+
+            if (tabName === 'category') document.getElementById('tab-home-cat').classList.add('active');
+            else document.getElementById('tab-home-wal').classList.add('active');
+
+            refreshHomeScreenUI();
+        }
+
+        // 控制眼睛遮蔽開關
+        function toggleAmountVisibility() {
+            isAmountHidden = !isAmountHidden;
+            const eyeBtn = document.getElementById('btn-privacy-eye');
+            if (isAmountHidden) {
+                eyeBtn.innerText = "visibility_off";
+                eyeBtn.style.color = "#ff7675"; // 遮蔽時變成警示紅色
+            } else {
+                eyeBtn.innerText = "visibility";
+                eyeBtn.style.color = "#d6a5ff";
+            }
+            refreshHomeScreenUI();
+        }
+
+        // 刷新主畫面屏幕內容的核心引擎
+        function refreshHomeScreenUI() {
+            const contentArea = document.getElementById('home-screen-content');
+
+            // 🔹 情況 A：如果是隱藏模式，直接滿版顯示隨機幹話！符合隱私需求
+            if (isAmountHidden) {
+                contentArea.innerHTML = `
+                <div style="text-align: center; font-size: 16px; font-weight: bold; color: #ff7675; font-style: italic; padding: 30px 10px; line-height:1.5;">
+                    🤫 [已開啟隱私防護]<br><span style="color:white; font-size:14px; font-weight:normal; display:inline-block; margin-top:10px;">"${getRandomMaskedText()}"</span>
+                </div>`;
+                return;
+            }
+
+            // 防呆：如果雲端資料還沒下載下來，顯示載入中
+            if (!cachedReportData) {
+                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 請先前往「收支報表」同步雲端運算...</div>`;
+                return;
+            }
+
+            let html = '';
+
+            // 🔹 情況 B：分類展示屏幕 (讀取收支報表 A2:F22 內算好的數值)
+            if (currentHomeTab === 'category') {
+                // data.totalBalance[5] 是第 22 列算出的 F 欄結餘 (總額)
+                html += `
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <span style="font-size:12px; color:rgba(255,255,255,0.6);">本月總資產結餘</span>
+                    <div style="font-size:26px; font-weight:bold; color:white; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+            `;
+
+                // 從快取中搜尋出生活費、必要支出、儲蓄投資等項目的「結餘數字(項目卡片的 item[5])」
+                cachedReportData.items.forEach(item => {
+                    // item[0] = 項目名稱, item[5] = 結餘
+                    html += `
+                    <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
+                        <span style="color:var(--text-muted);">${item[0]}</span>
+                        <span style="font-weight:bold; font-family:monospace; color:#d6a5ff;">$${item[5]}</span>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+
+            // 🔹 情況 C：錢包帳目展示屏幕 (未來如果您的試算表有加開獨立錢包欄位，在此可以直接擴充讀取)
+            else if (currentHomeTab === 'wallet') {
+                // 目前先以資產快取與預設範本智慧呈現，華南、國泰、郵局可以從您的初始帳目中連動
+                html += `
+                <div style="text-align: center; margin-bottom: 12px;">
+                    <span style="font-size:12px; color:rgba(255,255,255,0.6);">實體資產總計</span>
+                    <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">華南銀行</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
+                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">國泰世華</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
+                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">中華郵政</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
+                    <div class="wallet-item" style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between;"><span style="color:var(--text-muted);">隨身錢包</span><span style="font-weight:bold; font-family:monospace; color:white;">續算中</span></div>
+                </div>
+            `;
+            }
+
+            contentArea.innerHTML = html;
+        }
+
+        // 4. 連動原本的頁面切換機制 (在 switchPage 裡面補上重刷首頁)
+        // 請找到 switchPage 函式，在處理 page-home 的地方補上：
+        if (pageId === 'page-home') {
+            // 如果快取過期了，在背景悄悄去下載最新資料更新主畫面
+            if (isReportDataDirty) {
+                (async () => {
+                    const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                    const response = await fetch(API_URL + "?action=getReport");
+                    const result = await response.json();
+                    if (result.success) {
+                        cachedReportData = result.data;
+                        isReportDataDirty = false;
+                        refreshHomeScreenUI();
+                    }
+                })();
+            } else {
+                refreshHomeScreenUI(); // 沒過期就直接刷
+            }
         }
     </script>
     <div id="custom-alert-modal" class="custom-modal-overlay">
