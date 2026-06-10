@@ -802,12 +802,20 @@
             </div>
         </div>
 
-        <div id="page-raw" class="page">
+        <div id="page-raw-data" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
                 <h2>原始資料</h2>
+                <div id="btn-toggle-edit"
+                    style="margin-left:auto; font-size:22px; cursor:pointer; color: var(--text-muted);"
+                    onclick="toggleRawDataEditMode()">
+                    <span class="material-symbols-outlined">edit</span>
+                </div>
             </div>
-            <div class="placeholder-box">這裡將直接顯示從 Google Sheet 撈回來的原始陣列資料</div>
+
+            <div id="raw-data-container">
+                <div class="placeholder-box">等待載入資料...</div>
+            </div>
         </div>
 
         <div id="toast-msg"
@@ -893,6 +901,13 @@
             // ★ 新增：切換到支出報告圖頁面時，自動載入數據並繪製
             if (pageId === 'page-chart') {
                 loadChartData();
+            };
+            // ★ 新增：切換到原始資料頁時，重置編輯模式並載入資料
+            if (pageId === 'page-raw-data') {
+                isRawDataEditMode = false;
+                document.getElementById('btn-toggle-edit').style.color = 'var(--text-muted)';
+                document.getElementById('btn-toggle-edit').innerHTML = '<span class="material-symbols-outlined">edit</span>';
+                loadRawData();
             }
         }
 
@@ -1469,6 +1484,8 @@
 
             document.getElementById('custom-alert-modal').style.display = 'flex';
         }
+
+        // ================= 第二大項-收支明細，控制系統 =================
         // ================= 收支明細邏輯 =================
         async function loadDetails(filterType) {
             // 1. 切換上方按鈕的視覺狀態 (Active)
@@ -1556,7 +1573,9 @@
 
             container.innerHTML = html;
         }
-        // ================= 支出報告圖控制系統 =================
+
+        // ================= 第三大項-支出報告圖，控制系統 =================
+
         let myChartInstance = null;  // 用來存放圖表實例的全域變數
         let globalChartLabels = [];  // 快取後端傳回的類別名稱
         let globalChartValues = [];  // 快取後端傳回的金額數據
@@ -1673,6 +1692,190 @@
                 renderExpenseChart(type);
             }
         }
+
+        // ================= 第四大項-原始資料，控制系統 =================
+        // ================= 雙按鈕確認視窗控制 =================
+        function showConfirmModal(title, desc, confirmCallback) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-desc').innerText = desc;
+
+            const btn = document.getElementById('confirm-btn');
+            btn.onclick = () => {
+                closeConfirmModal();
+                if (confirmCallback) confirmCallback();
+            };
+
+            document.getElementById('confirm-modal').style.display = 'flex';
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').style.display = 'none';
+        }
+
+        // ================= 原始資料控制系統 =================
+        let isRawDataEditMode = false;
+        let cachedRawData = [];
+
+        // 1. 開關編輯模式
+        function toggleRawDataEditMode() {
+            isRawDataEditMode = !isRawDataEditMode;
+            const editBtn = document.getElementById('btn-toggle-edit');
+
+            if (isRawDataEditMode) {
+                editBtn.style.color = '#ff7675'; // 編輯模式變為紅色
+                editBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span>';
+            } else {
+                editBtn.style.color = 'var(--text-muted)';
+                editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+            }
+
+            // 重新渲染畫面以顯示/隱藏刪除按鈕
+            renderRawDataHTML();
+        }
+
+        // 2. 讀取原始資料
+        async function loadRawData() {
+            const container = document.getElementById('raw-data-container');
+            container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
+
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                const response = await fetch(API_URL + "?action=getRawData");
+                const result = await response.json();
+
+                if (result.success) {
+                    cachedRawData = result.data;
+                    renderRawDataHTML();
+                } else {
+                    container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路錯誤，請稍後再試。</div>`;
+            }
+        }
+
+        // 3. 渲染資料清單
+        // 3. 渲染原始資料清單 (10欄位精準完整排版版)
+        function renderRawDataHTML() {
+            const container = document.getElementById('raw-data-container');
+            if (cachedRawData.length === 0) {
+                container.innerHTML = `<div class="placeholder-box">資料庫目前沒有任何紀錄喔！</div>`;
+                return;
+            }
+
+            let html = '';
+            cachedRawData.forEach(row => {
+                // 💡 解構您指定的 10 個欄位與索引
+                const id = row[0];               // 唯一ID[0] (刪除用)
+                const type = row[2];             // 交易類型[2]
+                const transferAmount = row[3];    // 轉帳金額[3]
+                const transferOut = row[4];       // 轉出帳戶[4]
+                const transferIn = row[5];        // 轉入帳戶[5]
+                const date = row[6];             // 日期[6]
+                const incomeCategory = row[8];    // 收入帳目[8]
+                const incomeAmount = row[9];      // 收入金額[9]
+                const expenseCategory = row[10];   // 帳目類型[10]
+                const note = row[11];            // 備註說明[11]
+                const expenseAmount = row[13];     // 支出金額[13]
+
+                // 根據交易類型定義主題發光色
+                let themeColor = '#b864ff'; // 預設紫色
+                if (type === '支出') themeColor = '#ff7675'; // 紅
+                if (type === '收入') themeColor = '#2ecc71'; // 綠
+                if (type === '轉帳') themeColor = '#3498db'; // 藍
+
+                html += `
+            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 18px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: all 0.3s;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 13px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px;">📅 ${date}</span>
+                        <span style="background: ${themeColor}15; border: 1px solid ${themeColor}40; color: ${themeColor}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${type}</span>
+                    </div>
+                    
+                    <div onclick="executeDeleteRecord('${id}')" style="display: ${isRawDataEditMode ? 'flex' : 'none'}; width: 34px; height: 34px; background: rgba(255, 118, 117, 0.15); border-radius: 8px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
+                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                    </div>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 15px; font-size: 13px; color: var(--text-muted);">
+                    
+                    <div style="opacity: ${type === '支出' ? '1' : '0.4'}">
+                        <span style="font-size:11px; display:block; margin-bottom:2px;">🔺 支出金額 [13]</span>
+                        <span style="color: ${type === '支出' ? '#ff7675' : 'white'}; font-weight: bold; font-family: monospace; font-size:14px;">${expenseAmount || '—'}</span>
+                    </div>
+                    <div style="opacity: ${type === '支出' ? '1' : '0.4'}">
+                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏷️ 帳目類型 [10]</span>
+                        <span style="color: white; font-weight: 500;">${expenseCategory || '—'}</span>
+                    </div>
+
+                    <div style="opacity: ${type === '收入' ? '1' : '0.4'}">
+                        <span style="font-size:11px; display:block; margin-bottom:2px;">🟢 收入金額 [9]</span>
+                        <span style="color: ${type === '收入' ? '#2ecc71' : 'white'}; font-weight: bold; font-family: monospace; font-size:14px;">${incomeAmount || '—'}</span>
+                    </div>
+                    <div style="opacity: ${type === '收入' ? '1' : '0.4'}">
+                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏷️ 收入帳目 [8]</span>
+                        <span style="color: white; font-weight: 500;">${incomeCategory || '—'}</span>
+                    </div>
+
+                    <div>
+                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏦 轉出帳戶 [4]</span>
+                        <span style="color: white;">${transferOut || '—'}</span>
+                    </div>
+                    <div>
+                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏦 轉入帳戶 [5]</span>
+                        <span style="color: white;">${transferIn || '—'}</span>
+                    </div>
+                    
+                    <div style="grid-column: span 2; opacity: ${type === '轉帳' ? '1' : '0.4'}; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                        <span style="font-size:11px; display:inline-block; margin-right:8px;">🔵 轉帳金額 [3]:</span>
+                        <span style="color: ${type === '轉帳' ? '#3498db' : 'white'}; font-weight: bold; font-family: monospace;">${transferAmount || '—'}</span>
+                    </div>
+                </div>
+
+                ${note ? `
+                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.05); font-size: 13px; color: #cbd5e1; display: flex; gap: 5px; align-items: flex-start;">
+                    <span style="color: var(--text-muted); shrink: 0;">📝 備註 [11]:</span>
+                    <span style="word-break: break-all; line-height: 1.4;">${note}</span>
+                </div>` : ''}
+
+            </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 4. 呼叫刪除 API
+        function executeDeleteRecord(id) {
+            // 呼叫雙按鈕的 Modal
+            showConfirmModal("確認刪除該筆資料？", "刪除後報表將自動重算，且無法復原喔！", async () => {
+
+                showCustomAlert("⏳", "處理中", "正在連接資料庫刪除資料...");
+                const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+                try {
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        body: JSON.stringify({ action: "deleteRecord", id: id })
+                    });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // ★ 標記報表與明細快取作廢，確保下次打開能看到最新的計算結果！
+                        isReportDataDirty = true;
+
+                        showCustomAlert("✅", "刪除成功", "資料已刪除，報表已重新運算！", () => {
+                            loadRawData(); // 重新讀取畫面
+                        });
+                    } else {
+                        showCustomAlert("❌", "刪除失敗", result.message);
+                    }
+                } catch (error) {
+                    showCustomAlert("❌", "連線錯誤", error.message);
+                }
+            });
+        }
     </script>
     <div id="custom-alert-modal" class="custom-modal-overlay">
         <div class="custom-modal">
@@ -1680,6 +1883,19 @@
             <h3 id="alert-title">標題</h3>
             <p id="alert-desc">內容</p>
             <button id="alert-btn">確認</button>
+        </div>
+    </div>
+    <div id="confirm-modal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="icon" style="color: #ff7675; filter: drop-shadow(0 0 10px rgba(255, 118, 117, 0.5));">⚠️</div>
+            <h3 id="confirm-title" style="color: #ff7675;">確認刪除</h3>
+            <p id="confirm-desc">此操作將從資料庫徹底移除，並影響所有報表運算，是否確定？</p>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="closeConfirmModal()"
+                    style="flex: 1; background: rgba(255,255,255,0.1); color: white; box-shadow: none;">取消</button>
+                <button id="confirm-btn"
+                    style="flex: 1; background: linear-gradient(135deg, #ff7675, #d63031); box-shadow: 0 4px 15px rgba(255, 118, 117, 0.3);">確認刪除</button>
+            </div>
         </div>
     </div>
 </body>
