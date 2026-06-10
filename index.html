@@ -208,10 +208,15 @@
         }
 
         /* 浮動新增按鈕 (FAB) */
+        /* ================= 浮動按鈕與扇形選單 ================= */
+
+        /* 1. 右下角：新增記帳 (修正跑位問題，永遠鎖定螢幕右下角) */
         .fab {
-            position: absolute;
+            position: fixed;
+            /* 改為 fixed 鎖定視窗 */
             bottom: 30px;
-            right: 20px;
+            /* 完美適配：手機版距離右邊 20px，電腦版則對齊 500px 框架邊緣 */
+            right: max(20px, calc(50% - 230px));
             width: 65px;
             height: 65px;
             background: linear-gradient(135deg, #b864ff, #801acc);
@@ -230,6 +235,113 @@
         .fab:active {
             transform: scale(0.9) rotate(15deg);
         }
+
+        /* 2. 左下角：設定選單容器 */
+        .fab-settings-wrapper {
+            position: fixed;
+            bottom: 30px;
+            left: max(20px, calc(50% - 230px));
+            z-index: 100;
+        }
+
+        /* 主齒輪按鈕 */
+        .fab-settings {
+            width: 55px;
+            height: 55px;
+            background: rgba(30, 30, 45, 0.8);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 102;
+            position: relative;
+        }
+
+        .fab-settings .material-symbols-outlined {
+            font-size: 28px;
+            transition: transform 0.3s;
+        }
+
+        /* 齒輪展開時的狀態 */
+        .fab-settings-wrapper.active .fab-settings {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+
+        .fab-settings-wrapper.active .fab-settings .material-symbols-outlined {
+            transform: rotate(90deg);
+            /* 點擊時齒輪會旋轉 */
+        }
+
+        /* 扇形選單的子項目 */
+        .radial-menu {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 101;
+            pointer-events: none;
+            /* 隱藏時不可點擊 */
+        }
+
+        .radial-item {
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            /* 對齊齒輪中心 */
+            width: 45px;
+            height: 45px;
+            background: rgba(20, 20, 30, 0.95);
+            border: 1px solid var(--card-border);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            opacity: 0;
+            transform: scale(0);
+            /* 初始縮小隱藏 */
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .radial-item .material-symbols-outlined {
+            font-size: 20px;
+            color: #d6a5ff;
+        }
+
+        /* 展開時的扇形軌跡排列 */
+        .fab-settings-wrapper.active .radial-item {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .fab-settings-wrapper.active .item-1 {
+            transform: translate(0px, -75px);
+        }
+
+        /* 正上方 (語言/字體) */
+        .fab-settings-wrapper.active .item-2 {
+            transform: translate(55px, -55px);
+        }
+
+        /* 右上方 (主題色調) */
+        .fab-settings-wrapper.active .item-3 {
+            transform: translate(75px, 0px);
+        }
+
+        /* 正右方 (管理錢包) */
 
         /* 第二層頁面共用標頭 */
         .page-header {
@@ -500,8 +612,6 @@
                     <span class="text">原始資料</span>
                 </div>
             </div>
-
-            <div class="fab" onclick="switchPage('page-add')">＋</div>
         </div>
 
 
@@ -675,14 +785,29 @@
             <div class="placeholder-box">這裡將直接顯示從 Google Sheet 撈回來的原始陣列資料</div>
         </div>
 
-        <div onclick="toggleFont()"
-            style="position: absolute; bottom: 30px; left: 20px; width: 50px; height: 50px; background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 100; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-            <span class="material-symbols-outlined" style="color: #d6a5ff; font-size: 24px;">font_download</span>
-        </div>
-
         <div id="toast-msg"
             style="position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(159,53,255,0.9); color: white; padding: 10px 20px; border-radius: 20px; z-index: 9999; font-size: 14px; box-shadow: 0 4px 15px var(--primary-glow); opacity: 0; transition: opacity 0.3s ease; pointer-events: none;">
             已切換字體
+        </div>
+
+        <div class="fab" onclick="switchPage('page-add')">＋</div>
+
+        <div id="settings-menu" class="fab-settings-wrapper">
+            <div class="radial-menu">
+                <div class="radial-item item-1" onclick="toggleFont(); closeSettingsMenu();" title="語言/字體切換">
+                    <span class="material-symbols-outlined">translate</span>
+                </div>
+                <div class="radial-item item-2" onclick="alert('主題色調功能開發中...'); closeSettingsMenu();" title="主題色調">
+                    <span class="material-symbols-outlined">palette</span>
+                </div>
+                <div class="radial-item item-3" onclick="alert('管理錢包功能開發中...'); closeSettingsMenu();" title="管理錢包">
+                    <span class="material-symbols-outlined">account_balance_wallet</span>
+                </div>
+            </div>
+
+            <div class="fab-settings" onclick="toggleSettingsMenu(event)">
+                <span class="material-symbols-outlined">settings</span>
+            </div>
         </div>
 
     </div>
@@ -1328,6 +1453,28 @@
             const dateInput = document.getElementById('form-date');
             if (dateInput) {
                 dateInput.valueAsDate = new Date();
+            }
+        });
+
+        // ================= 扇形設定選單邏輯 =================
+        // 點擊齒輪切換展開/收合
+        function toggleSettingsMenu(event) {
+            event.stopPropagation(); // 防止點擊事件往上傳遞，觸發到外層的關閉機制
+            const menu = document.getElementById('settings-menu');
+            menu.classList.toggle('active');
+        }
+
+        // 強制收合選單
+        function closeSettingsMenu() {
+            document.getElementById('settings-menu').classList.remove('active');
+        }
+
+        // 點擊螢幕任何「選單以外」的地方，自動收起扇形選單
+        window.addEventListener('click', (e) => {
+            const menu = document.getElementById('settings-menu');
+            // 如果選單是開啟的，且點擊的目標不在選單內部，就收合它
+            if (menu && menu.classList.contains('active') && !menu.contains(e.target)) {
+                closeSettingsMenu();
             }
         });
     </script>
