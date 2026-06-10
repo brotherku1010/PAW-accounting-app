@@ -617,21 +617,52 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // 2. 月份切換邏輯 (雛形)
-        let currentDate = new Date(); // 預設為現在時間
+        // 2. 月份切換與雲端同步邏輯
+        let currentDate = new Date();
 
         function updateMonthDisplay() {
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             document.getElementById('current-month-display').innerText = `${year}年 ${month}月`;
-
-            // 💡 未來這裡可以加入：重新 fetch() 該月份的記帳資料
-            // console.log("載入新月份資料:", year, month);
         }
 
-        function changeMonth(delta) {
+        // 當點選左右箭頭切換月份時觸發
+        async function changeMonth(delta) {
             currentDate.setMonth(currentDate.getMonth() + delta);
-            updateMonthDisplay();
+            updateMonthDisplay(); // 先更新前端顯示，達到秒開流暢感
+
+            // 呼叫下方的新功能：將新月份同步到 Google Sheet 的「月份」工作表
+            await syncMonthToGoogleSheet();
+        }
+
+        // 新增：將當前網頁選定的年、月送給 GAS 
+        async function syncMonthToGoogleSheet() {
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1; // 轉為 1~12 月數字
+
+            try {
+                // 發送 POST 請求，指定 action 為 updateSelectedMonth
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "updateSelectedMonth",
+                        year: year,
+                        month: month
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    console.log("📊 雲端月份更新成功:", year, "年", month, "月");
+                    // 💡 未來這裡可以再擴充：重新 fetch 該月份最新演算出來的 帳目餘額、明細 等資料
+                } else {
+                    console.error("同步月份失敗:", result.message);
+                }
+            } catch (error) {
+                console.error("網路連線錯誤(同步月份):", error.message);
+            }
         }
 
         // 初始化執行
