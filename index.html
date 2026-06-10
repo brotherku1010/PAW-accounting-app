@@ -397,6 +397,67 @@
             filter: drop-shadow(0 0 8px var(--primary-glow));
             /* 圖標發光 */
         }
+
+        /* ================= 自訂浮動確認視窗 ================= */
+        .custom-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s;
+        }
+
+        .custom-modal {
+            background: rgba(20, 20, 30, 0.95);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 30px 20px;
+            width: 80%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px var(--primary-glow);
+            color: white;
+        }
+
+        .custom-modal .icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(46, 204, 113, 0.5));
+        }
+
+        .custom-modal h3 {
+            margin: 0 0 10px 0;
+            font-size: 22px;
+            color: #2ecc71;
+            letter-spacing: 1px;
+        }
+
+        .custom-modal p {
+            color: var(--text-muted);
+            font-size: 15px;
+            margin-bottom: 25px;
+        }
+
+        .custom-modal button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+        }
     </style>
 </head>
 
@@ -958,11 +1019,23 @@
 
         // 1. 讀取並渲染報表
         // 1. 讀取並渲染報表 (全新精緻排版版)
+        // ================= 報表與預算設定邏輯 =================
+
+        // 全域快取變數
+        let cachedReportData = null;
+        let isReportDataDirty = true; // 標記是否需要重新讀取 (true = 需要)
+
+        // 1. 讀取並渲染報表 (帶有快取機制版)
         async function loadReport() {
             const container = document.getElementById('report-container');
-            container.innerHTML = `<div class="placeholder-box">⏳ 正在計算當月報表...</div>`;
 
-            // 您的 GAS API 網址
+            // ★ 核心優化：如果資料沒有異動，且有舊快取，直接瞬間渲染！
+            if (!isReportDataDirty && cachedReportData) {
+                renderReportHTML(cachedReportData, container);
+                return;
+            }
+
+            container.innerHTML = `<div class="placeholder-box">⏳ 正在計算當月報表...</div>`;
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
@@ -970,52 +1043,9 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    const data = result.data;
-
-                    // 💡 調整 1：補回「本月總收入」字樣，並修正資料讀取位置為 C2 (索引 2)
-                    let html = `
-                    <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); padding: 18px; border-radius: 16px; margin-bottom: 25px; text-align:center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
-                        <div style="font-size: 14px; color: #2ecc71; opacity: 0.9; margin-bottom: 5px; letter-spacing: 1px;">本月總收入</div>
-                        <div style="font-size: 28px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[2]}</div>
-                    </div>
-                `;
-
-                    // 項目卡片排版
-                    data.items.forEach(item => {
-                        // 欄位定義：item[0]=項目名稱, item[1]=預算比例, item[2]=預算金額, item[3]=實際支出, item[4]=上月餘額, item[5]=結餘金額
-
-                        html += `
-                    <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                        
-                        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-                            
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <span style="font-weight: bold; color: white; font-size: 18px; letter-spacing: 0.5px;">${item[0]}</span>
-                                <span style="font-size: 14px; color: var(--text-muted);">預算: <span style="color:#e0e0e0;">$${item[2]}</span></span>
-                            </div>
-                            
-                            <div style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-                                <span>上月餘額: <span style="color: #9aa0a6;">$${item[4]}</span></span>
-                                <span>支出: <span style="color: #ff7675;">$${item[3]}</span></span>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align: right; min-width: 100px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
-                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
-                            <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
-                        </div>
-
-                    </div>`;
-                    });
-
-                    // 總結餘底部卡片
-                    html += `
-                    <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 18px; border-radius: 16px; margin-top: 25px; text-align:center; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2);">
-                        <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
-                        <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
-                    </div>
-                `;
-                    container.innerHTML = html;
+                    cachedReportData = result.data; // 更新快取
+                    isReportDataDirty = false;      // 標記狀態為乾淨(無異動)
+                    renderReportHTML(cachedReportData, container);
                 } else {
                     container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">❌ 運算失敗：${result.message}</div>`;
                 }
@@ -1023,6 +1053,45 @@
                 container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">❌ 讀取失敗，請確認網路連線。</div>`;
             }
         }
+
+        // 將組裝報表 HTML 的邏輯獨立出來
+        function renderReportHTML(data, container) {
+            let html = `
+            <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); padding: 18px; border-radius: 16px; margin-bottom: 25px; text-align:center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+                <div style="font-size: 14px; color: #2ecc71; opacity: 0.9; margin-bottom: 5px; letter-spacing: 1px;">本月總收入</div>
+                <div style="font-size: 28px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[2]}</div>
+            </div>
+        `;
+
+            data.items.forEach(item => {
+                html += `
+            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <span style="font-weight: bold; color: white; font-size: 18px; letter-spacing: 0.5px;">${item[0]}</span>
+                        <span style="font-size: 14px; color: var(--text-muted);">預算: <span style="color:#e0e0e0;">$${item[2]}</span></span>
+                    </div>
+                    <div style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                        <span>上月餘額: <span style="color: #9aa0a6;">$${item[4]}</span></span>
+                        <span>支出: <span style="color: #ff7675;">$${item[3]}</span></span>
+                    </div>
+                </div>
+                <div style="text-align: right; min-width: 100px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
+                    <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
+                </div>
+            </div>`;
+            });
+
+            html += `
+            <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 18px; border-radius: 16px; margin-top: 25px; text-align:center; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2);">
+                <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
+                <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
+            </div>
+        `;
+            container.innerHTML = html;
+        }
+
         let editingItems = [];
         // 2. 開啟編輯面板 (動態讀取雲端舊資料)
         async function openBudgetEdit() {
@@ -1032,7 +1101,7 @@
             const indicator = document.getElementById('budget-total-indicator');
 
             // 進入時先顯示載入中，並鎖定儲存按鈕
-            list.innerHTML = `<div class="placeholder-box">⏳ 讀取現有設定中...</div>`;
+            list.innerHTML = `<div class="placeholder-box">⏳ 我知道你很冷！但你先不要冷...</div>`;
             indicator.innerText = `總預算比例：計算中...`;
             btn.disabled = true;
             btn.style.opacity = "0.5";
@@ -1077,56 +1146,52 @@
         }
 
         // 渲染項目與防呆檢查
+        // 渲染項目與防呆檢查 (加入標題列)
         function renderBudgetRows() {
             const list = document.getElementById('budget-items-list');
-            list.innerHTML = "";
-            let totalRatio = 0;
 
+            // ★ 加入「項目」與「比例(%)」的置中標題
+            list.innerHTML = `
+            <div style="display:flex; gap:10px; margin-bottom:10px; padding: 0 5px; color: var(--text-muted); font-size: 14px; font-weight: bold; text-align: center;">
+                <div style="flex:2; text-align: left; padding-left: 5px;">項目</div>
+                <div style="flex:1;">比例(%)</div>
+                <div style="width: 34px;"></div> </div>
+        `;
+
+            let totalRatio = 0;
             editingItems.forEach((item, idx) => {
                 totalRatio += Number(item.ratio);
                 list.innerHTML += `
                 <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
-                    <input type="text" placeholder="項目名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
-                    <input type="number" placeholder="%" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
+                    <input type="text" placeholder="輸入名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
+                    <input type="number" placeholder="0" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
                     <div style="color:#ff7675; font-size:24px; cursor:pointer; padding: 0 5px;" onclick="removeBudgetRow(${idx})">✖</div>
                 </div>
             `;
             });
 
-            // 100% 防呆檢查 (使用 Math.round 避免小數點運算誤差，例如 33.3+33.3+33.4 變成 99.99999%)
+            // 100% 防呆檢查
             totalRatio = Math.round(totalRatio * 100) / 100;
-
             const indicator = document.getElementById('budget-total-indicator');
             const btn = document.getElementById('btn-save-budget');
             indicator.innerText = `總預算比例：${totalRatio}%`;
 
             if (totalRatio === 100) {
-                indicator.style.color = "#2ecc71"; // 綠色 (100% 正確)
+                indicator.style.color = "#2ecc71";
                 btn.disabled = false;
                 btn.style.opacity = "1";
             } else {
-                indicator.style.color = "#ff7675"; // 紅色 (非 100% 錯誤)
+                indicator.style.color = "#ff7675";
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
             }
         }
 
-        function addBudgetRow() {
-            if (editingItems.length >= 19) return alert("最多只能設定 19 個項目喔！");
-            editingItems.push({ name: "", ratio: 0 });
-            renderBudgetRows();
-        }
-
-        function removeBudgetRow(index) {
-            editingItems.splice(index, 1);
-            renderBudgetRows();
-        }
-        // 3. 儲存設定到後端
+        // 儲存設定到後端 (觸發自訂 Modal 與快取失效)
         async function saveBudgetSettings() {
             const btn = document.getElementById('btn-save-budget');
             btn.innerText = "⏳ 寫入公式中...";
 
-            // 整理資料：將 50% 轉為 0.5 送給試算表
             const payloadItems = editingItems.map(item => ({
                 name: item.name,
                 ratio: Number(item.ratio) / 100
@@ -1140,9 +1205,11 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    alert("✅ 設定完成！公式已全面更新。");
-                    switchPage('page-report');
-                    loadReport(); // 重新讀取新報表
+                    // ★ 標記快取已經過期，下次讀取報表會強迫去要最新資料
+                    isReportDataDirty = true;
+
+                    // ★ 彈出華麗的自訂成功視窗取代 alert
+                    document.getElementById('success-modal').style.display = 'flex';
                 }
             } catch (error) {
                 alert("❌ 儲存失敗：" + error.message);
@@ -1150,8 +1217,46 @@
                 btn.innerText = "💾 儲存並寫入公式";
             }
         }
-    </script>
 
+        // 關閉成功視窗，並返回報表頁
+        function closeSuccessModal() {
+            document.getElementById('success-modal').style.display = 'none';
+            switchPage('page-report'); // switchPage 已經寫好會自動觸發 loadReport()
+        }
+
+        // ★ 最後一塊拼圖：切換月份時，也必須讓快取失效！
+        // (請確保您的 changeMonth 函式長這樣)
+        async function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            updateMonthDisplay();
+
+            isReportDataDirty = true; // 換月了，舊快取作廢！
+
+            await syncMonthToGoogleSheet();
+
+            if (document.getElementById('page-report').classList.contains('active')) {
+                loadReport();
+            }
+        }
+        function addBudgetRow() {
+            if (editingItems.length >= 19) return alert("最多只能設定 19 個項目喔！");
+            editingItems.push({ name: "", ratio: 0 });
+            renderBudgetRows();
+        }
+
+        function removeBudgetRow(index) {
+            editingItems.splice(index, 1);
+            renderBudgetRows();
+        }
+    </script>
+    <div id="success-modal" class="custom-modal-overlay">
+        <div class="custom-modal">
+            <div class="icon">✅</div>
+            <h3>設定完成</h3>
+            <p>項目與預算公式已全數更新</p>
+            <button onclick="closeSuccessModal()">確認並返回</button>
+        </div>
+    </div>
 </body>
 
 </html>
