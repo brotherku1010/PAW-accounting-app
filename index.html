@@ -695,10 +695,23 @@
             'pexels-footage-kingdom-122917970-13825468.jpg',
             'pexels-enginakyurt-6348818.jpg'
         ];
-        // ================= 前端控制邏輯 =================
-        // 1. 頁面切換引擎
-        // ================= 前端控制邏輯 =================
-
+        // ================= 趣味載入語錄 (廢話 JSON 陣列) =================
+        const loadingQuotes = [
+            "在非洲，每六十秒，就有一分鐘過去...",
+            "凡是每天喝水的人，有高機率在100年內死去...",
+            "每呼吸60秒，就減少一分鐘的壽命...",
+            "當你吃下二十碗白飯，換算竟相當於吃下了二十碗白飯的熱量...",
+            "誰能想的到，這名16歲少女，在四年前，只是一名12歲少女...",
+            "台灣人在睡覺時，大多數的美國人都在工作...",
+            "當蝴蝶在南半球拍了兩下翅膀，牠就會稍微飛高一點點...",
+            "據統計，未婚生子的人數中有高機率為女性...",
+            "只要每天省下買一杯奶茶的錢，十天後就能買十杯奶茶...",
+            "當你的左臉被人打，那你的左臉就會痛...",
+            "今年中秋節剛好是滿月、今年七夕恰逢鬼月...",
+            "人被殺，就會死...",
+            "台灣競爭力低落，在美國就連小學生都會說流利的英語...",
+            "我知道你很冷！但你先不要冷..."
+        ];
         // 💡 修復 1：確保網頁完全載入後，才去設定預設日期 (防呆機制)
         window.addEventListener('DOMContentLoaded', () => {
             const dateInput = document.getElementById('form-date');
@@ -723,6 +736,11 @@
             if (pageId === 'page-report') {
                 loadReport();
             }
+        }
+
+        function getRandomNonsense() {
+            const randomIndex = Math.floor(Math.random() * loadingQuotes.length);
+            return loadingQuotes[randomIndex];
         }
 
         // 2. 月份切換與雲端同步邏輯
@@ -795,7 +813,7 @@
             }
 
             // 鎖定按鈕，顯示載入中
-            btn.innerText = "⏳ 儲存中...";
+            btn.innerText = `⏳ ${getRandomNonsense()}`;
             btn.disabled = true;
 
             const payload = { type, date, category, amount, note };
@@ -911,7 +929,7 @@
             }
 
             // 鎖定按鈕
-            btn.innerText = "⏳ 儲存中...";
+            btn.innerText = `⏳ ${getRandomNonsense()}`;
             btn.disabled = true;
 
             try {
@@ -1035,7 +1053,7 @@
                 return;
             }
 
-            container.innerHTML = `<div class="placeholder-box">⏳ 正在計算當月報表...</div>`;
+            container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
@@ -1083,12 +1101,21 @@
             </div>`;
             });
 
+            // 總結餘底部卡片 (升級版：主秀總餘額，左下角點綴總支出)
             html += `
-            <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 18px; border-radius: 16px; margin-top: 25px; text-align:center; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2);">
-                <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
-                <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
-            </div>
-        `;
+                    <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 20px 18px; border-radius: 16px; margin-top: 25px; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100px;">
+                        
+                        <div style="text-align: center; width: 100%;">
+                            <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
+                            <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
+                        </div>
+
+                        <div style="position: absolute; bottom: 12px; left: 15px; text-align: left; opacity: 0.85;">
+                            <span style="font-size: 11px; color: #ff7675; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">總支出</span>
+                            <span style="font-size: 14px; font-weight: bold; color: #ff7675; font-family: monospace;">$${data.totalIncome[3]}</span>
+                        </div>
+                    </div>
+                `;
             container.innerHTML = html;
         }
 
@@ -1101,7 +1128,7 @@
             const indicator = document.getElementById('budget-total-indicator');
 
             // 進入時先顯示載入中，並鎖定儲存按鈕
-            list.innerHTML = `<div class="placeholder-box">⏳ 我知道你很冷！但你先不要冷...</div>`;
+            list.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
             indicator.innerText = `總預算比例：計算中...`;
             btn.disabled = true;
             btn.style.opacity = "0.5";
@@ -1190,7 +1217,7 @@
         // 儲存設定到後端 (觸發自訂 Modal 與快取失效)
         async function saveBudgetSettings() {
             const btn = document.getElementById('btn-save-budget');
-            btn.innerText = "⏳ 寫入公式中...";
+            btn.innerText = `⏳ ${getRandomNonsense()}`;
 
             const payloadItems = editingItems.map(item => ({
                 name: item.name,
