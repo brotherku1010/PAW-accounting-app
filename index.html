@@ -1680,12 +1680,12 @@
         }
 
         // ================= 原始資料控制系統 =================
+        // ================= 原始資料控制系統 (分頁與智慧隱藏版) =================
         let isRawDataEditMode = false;
         let cachedRawData = [];
         let currentRawDataPage = 1;
-        const itemsPerPage = 10; // 每頁限制 10 筆資料
+        const itemsPerPage = 10; // 限制每頁 10 筆
 
-        // 1. 開關編輯模式
         function toggleRawDataEditMode() {
             isRawDataEditMode = !isRawDataEditMode;
             const editBtn = document.getElementById('btn-toggle-edit');
@@ -1698,25 +1698,23 @@
                     editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
                 }
             }
-            renderRawDataHTML(); // 重新渲染當前頁面
+            renderRawDataHTML();
         }
 
-        // 2. 讀取原始資料
         async function loadRawData() {
             const container = document.getElementById('raw-data-container');
             const paginationContainer = document.getElementById('raw-data-pagination');
             container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
-            if (paginationContainer) paginationContainer.innerHTML = ''; // 載入時先隱藏分頁鈕
+            if (paginationContainer) paginationContainer.innerHTML = '';
 
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
                 const response = await fetch(API_URL + "?action=getRawData");
                 const result = await response.json();
-
                 if (result.success) {
                     cachedRawData = result.data;
-                    currentRawDataPage = 1; // 每次重新載入原始資料時，一律重置回第 1 頁
+                    currentRawDataPage = 1; // 每次重載回到第一頁
                     renderRawDataHTML();
                 } else {
                     container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
@@ -1726,30 +1724,27 @@
             }
         }
 
-        // 3. 智慧動態卡片渲染與分頁控制 (核心引擎)
         function renderRawDataHTML() {
             const container = document.getElementById('raw-data-container');
             const paginationContainer = document.getElementById('raw-data-pagination');
 
             if (cachedRawData.length === 0) {
-                container.innerHTML = `<div class="placeholder-box">資料庫目前沒有任何紀錄喔！</div>`;
+                container.innerHTML = `<div class="placeholder-box">資料庫目前沒有紀錄喔！</div>`;
                 if (paginationContainer) paginationContainer.innerHTML = '';
                 return;
             }
 
-            // ─── 分頁核心計算 ───
+            // 分頁計算
             const totalPages = Math.ceil(cachedRawData.length / itemsPerPage);
             if (currentRawDataPage > totalPages) currentRawDataPage = totalPages;
             if (currentRawDataPage < 1) currentRawDataPage = 1;
 
-            // 切出當前頁面該顯示的 10 筆區間
             const startIndex = (currentRawDataPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
             const currentPageData = cachedRawData.slice(startIndex, endIndex);
 
             let html = '';
             currentPageData.forEach(row => {
-                // 對接欄位索引
                 const id = row[0];
                 const type = row[2];
                 const transferAmount = row[3];
@@ -1767,73 +1762,39 @@
                 if (type === '收入') themeColor = '#2ecc71';
                 if (type === '轉帳') themeColor = '#3498db';
 
-                // 💡 智慧防呆判定：只有當欄位不是空字串、不是 "—" 時，才算有數值
+                // 防呆判定：檢查是否有值
                 const hasValue = (val) => val && val.toString().trim() !== "" && val.toString().trim() !== "—" && val.toString().trim() !== "0";
 
-                // 💡 動態收集「有數值」的欄位 HTML，移除排序編號 [x] 標籤
                 let bodyFieldsHtml = '';
-
                 if (hasValue(expenseAmount)) {
-                    bodyFieldsHtml += `
-                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🔺 支出金額</span>
-                        <span style="color: #ff7675; font-weight: bold; font-family: monospace; font-size:15px;">$${expenseAmount}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);"><span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🔺 支出金額</span><span style="color: #ff7675; font-weight: bold; font-family: monospace; font-size:15px;">$${expenseAmount}</span></div>`;
                 }
                 if (hasValue(expenseCategory)) {
-                    bodyFieldsHtml += `
-                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏷️ 帳目類型</span>
-                        <span style="color: white; font-weight: 500; font-size:14px;">${expenseCategory}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);"><span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏷️ 帳目類型</span><span style="color: white; font-weight: 500; font-size:14px;">${expenseCategory}</span></div>`;
                 }
                 if (hasValue(incomeAmount)) {
-                    bodyFieldsHtml += `
-                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🟢 收入金額</span>
-                        <span style="color: #2ecc71; font-weight: bold; font-family: monospace; font-size:15px;">$${incomeAmount}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);"><span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🟢 收入金額</span><span style="color: #2ecc71; font-weight: bold; font-family: monospace; font-size:15px;">$${incomeAmount}</span></div>`;
                 }
                 if (hasValue(incomeCategory)) {
-                    bodyFieldsHtml += `
-                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏷️ 收入帳目</span>
-                        <span style="color: white; font-weight: 500; font-size:14px;">${incomeCategory}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);"><span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏷️ 收入帳目</span><span style="color: white; font-weight: 500; font-size:14px;">${incomeCategory}</span></div>`;
                 }
                 if (hasValue(transferAmount)) {
-                    // 轉帳金額通常很重要，給予橫跨兩欄滿版設計
-                    bodyFieldsHtml += `
-                    <div style="grid-column: span 2; background: rgba(36,152,219,0.05); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(52,152,219,0.15);">
-                        <span style="font-size:11px; color: #3498db; display:block; margin-bottom:2px;">🔵 轉帳金額</span>
-                        <span style="color: white; font-weight: bold; font-family: monospace; font-size:15px;">$${transferAmount}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="grid-column: span 2; background: rgba(36,152,219,0.05); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(52,152,219,0.15);"><span style="font-size:11px; color: #3498db; display:block; margin-bottom:2px;">🔵 轉帳金額</span><span style="color: white; font-weight: bold; font-family: monospace; font-size:15px;">$${transferAmount}</span></div>`;
                 }
                 if (hasValue(transferOut)) {
-                    bodyFieldsHtml += `
-                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">走 轉出帳戶</span>
-                        <span style="color: white; font-size:14px;">${transferOut}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);"><span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏦 轉出帳戶</span><span style="color: white; font-size:14px;">${transferOut}</span></div>`;
                 }
                 if (hasValue(transferIn)) {
-                    bodyFieldsHtml += `
-                    <div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">入 轉入帳戶</span>
-                        <span style="color: white; font-size:14px;">${transferIn}</span>
-                    </div>`;
+                    bodyFieldsHtml += `<div style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.03);"><span style="font-size:11px; color: var(--text-muted); display:block; margin-bottom:2px;">🏦 轉入帳戶</span><span style="color: white; font-size:14px;">${transferIn}</span></div>`;
                 }
 
-                // 組裝獨立卡片
                 html += `
             <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 18px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 13px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px;">📅 ${date}</span>
                         <span style="background: ${themeColor}15; border: 1px solid ${themeColor}40; color: ${themeColor}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${type}</span>
                     </div>
-                    
                     <div onclick="executeDeleteRecord('${id}')" style="display: ${isRawDataEditMode ? 'flex' : 'none'}; width: 34px; height: 34px; background: rgba(255, 118, 117, 0.15); border-radius: 8px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
                         <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
                     </div>
@@ -1848,13 +1809,12 @@
                     <span style="color: var(--text-muted); shrink: 0; font-size: 13px; margin-top: 3px;">📝 備註:</span>
                     <span style="word-break: break-all; line-height: 1.4; font-weight: bold; color: #ffffff;">${note}</span>
                 </div>` : ''}
-
             </div>`;
             });
 
             container.innerHTML = html;
 
-            // ─── 💡 調整 5：渲染科技感分頁按鈕 ───
+            // 渲染分頁按鈕
             if (paginationContainer) {
                 paginationContainer.innerHTML = `
                 <button onclick="changeRawDataPage(-1)" ${currentRawDataPage === 1 ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">❮ 上一頁</button>
@@ -1863,102 +1823,36 @@
             `;
             }
         }
+
+        function changeRawDataPage(delta) {
+            currentRawDataPage += delta;
+            renderRawDataHTML();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function executeDeleteRecord(id) {
+            showConfirmModal("確認刪除該筆資料？", "刪除後報表將自動重算，且無法復原喔！", async () => {
+                showCustomAlert("⏳", "處理中", "正在連接資料庫刪除資料...");
+                const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                try {
+                    const response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecord", id: id }) });
+                    const result = await response.json();
+                    if (result.success) {
+                        isReportDataDirty = true;
+                        showCustomAlert("✅", "刪除成功", "資料已刪除，報表已重新運算！", () => { loadRawData(); });
+                    } else {
+                        showCustomAlert("❌", "刪除失敗", result.message);
+                    }
+                } catch (error) { showCustomAlert("❌", "連線錯誤", error.message); }
+            });
+        }
+
         function changeRawDataPage(delta) {
             currentRawDataPage += delta;
             renderRawDataHTML();
             // 切換頁面時，自動幫使用者平滑捲動回手機框架最上方，操作最流暢
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
-        // 3. 渲染原始資料清單 (10欄位精準完整排版版)
-        function renderRawDataHTML() {
-            const container = document.getElementById('raw-data-container');
-            if (cachedRawData.length === 0) {
-                container.innerHTML = `<div class="placeholder-box">資料庫目前沒有任何紀錄喔！</div>`;
-                return;
-            }
-
-            let html = '';
-            cachedRawData.forEach(row => {
-                // 💡 解構您指定的 10 個欄位與索引
-                const id = row[0];               // 唯一ID[0] (刪除用)
-                const type = row[2];             // 交易類型[2]
-                const transferAmount = row[3];    // 轉帳金額[3]
-                const transferOut = row[4];       // 轉出帳戶[4]
-                const transferIn = row[5];        // 轉入帳戶[5]
-                const date = row[6];             // 日期[6]
-                const incomeCategory = row[8];    // 收入帳目[8]
-                const incomeAmount = row[9];      // 收入金額[9]
-                const expenseCategory = row[10];   // 帳目類型[10]
-                const note = row[11];            // 備註說明[11]
-                const expenseAmount = row[13];     // 支出金額[13]
-
-                // 根據交易類型定義主題發光色
-                let themeColor = '#b864ff'; // 預設紫色
-                if (type === '支出') themeColor = '#ff7675'; // 紅
-                if (type === '收入') themeColor = '#2ecc71'; // 綠
-                if (type === '轉帳') themeColor = '#3498db'; // 藍
-
-                html += `
-            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 18px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: all 0.3s;">
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 13px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px;">📅 ${date}</span>
-                        <span style="background: ${themeColor}15; border: 1px solid ${themeColor}40; color: ${themeColor}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${type}</span>
-                    </div>
-                    
-                    <div onclick="executeDeleteRecord('${id}')" style="display: ${isRawDataEditMode ? 'flex' : 'none'}; width: 34px; height: 34px; background: rgba(255, 118, 117, 0.15); border-radius: 8px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
-                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
-                    </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 15px; font-size: 13px; color: var(--text-muted);">
-                    
-                    <div style="opacity: ${type === '支出' ? '1' : '0.4'}">
-                        <span style="font-size:11px; display:block; margin-bottom:2px;">🔺 支出金額 [13]</span>
-                        <span style="color: ${type === '支出' ? '#ff7675' : 'white'}; font-weight: bold; font-family: monospace; font-size:14px;">${expenseAmount || '—'}</span>
-                    </div>
-                    <div style="opacity: ${type === '支出' ? '1' : '0.4'}">
-                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏷️ 帳目類型 [10]</span>
-                        <span style="color: white; font-weight: 500;">${expenseCategory || '—'}</span>
-                    </div>
-
-                    <div style="opacity: ${type === '收入' ? '1' : '0.4'}">
-                        <span style="font-size:11px; display:block; margin-bottom:2px;">🟢 收入金額 [9]</span>
-                        <span style="color: ${type === '收入' ? '#2ecc71' : 'white'}; font-weight: bold; font-family: monospace; font-size:14px;">${incomeAmount || '—'}</span>
-                    </div>
-                    <div style="opacity: ${type === '收入' ? '1' : '0.4'}">
-                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏷️ 收入帳目 [8]</span>
-                        <span style="color: white; font-weight: 500;">${incomeCategory || '—'}</span>
-                    </div>
-
-                    <div>
-                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏦 轉出帳戶 [4]</span>
-                        <span style="color: white;">${transferOut || '—'}</span>
-                    </div>
-                    <div>
-                        <span style="font-size:11px; display:block; margin-bottom:2px;">🏦 轉入帳戶 [5]</span>
-                        <span style="color: white;">${transferIn || '—'}</span>
-                    </div>
-                    
-                    <div style="grid-column: span 2; opacity: ${type === '轉帳' ? '1' : '0.4'}; background: rgba(255,255,255,0.02); padding: 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
-                        <span style="font-size:11px; display:inline-block; margin-right:8px;">🔵 轉帳金額 [3]:</span>
-                        <span style="color: ${type === '轉帳' ? '#3498db' : 'white'}; font-weight: bold; font-family: monospace;">${transferAmount || '—'}</span>
-                    </div>
-                </div>
-
-                ${note ? `
-                <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.05); font-size: 13px; color: #cbd5e1; display: flex; gap: 5px; align-items: flex-start;">
-                    <span style="color: var(--text-muted); shrink: 0;">📝 備註 [11]:</span>
-                    <span style="word-break: break-all; line-height: 1.4;">${note}</span>
-                </div>` : ''}
-
-            </div>`;
-            });
-
-            container.innerHTML = html;
-        }
-
         // 4. 呼叫刪除 API
         function executeDeleteRecord(id) {
             // 呼叫雙按鈕的 Modal
