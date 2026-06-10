@@ -1023,13 +1023,92 @@
                 container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">❌ 讀取失敗，請確認網路連線。</div>`;
             }
         }
-        // 2. 開啟編輯面板 (帶入空欄位或舊資料)
         let editingItems = [];
-        function openBudgetEdit() {
+        // 2. 開啟編輯面板 (動態讀取雲端舊資料)
+        async function openBudgetEdit() {
             switchPage('page-budget-edit');
-            // 這裡您可以預設帶入幾筆，或是先給一筆空的
-            editingItems = [{ name: "生活費", ratio: 50 }];
-            renderBudgetRows();
+            const list = document.getElementById('budget-items-list');
+            const btn = document.getElementById('btn-save-budget');
+            const indicator = document.getElementById('budget-total-indicator');
+
+            // 進入時先顯示載入中，並鎖定儲存按鈕
+            list.innerHTML = `<div class="placeholder-box">⏳ 讀取現有設定中...</div>`;
+            indicator.innerText = `總預算比例：計算中...`;
+            btn.disabled = true;
+            btn.style.opacity = "0.5";
+
+            // ★ 您的 GAS API 網址
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                // 呼叫我們之前寫好的 getReport 來取得所有非空白的項目
+                const response = await fetch(API_URL + "?action=getReport");
+                const result = await response.json();
+
+                if (result.success) {
+                    editingItems = [];
+                    // result.data.items 裡面存放著第 3 列到第 21 列有寫東西的資料
+                    result.data.items.forEach(item => {
+                        // item[0] 是項目名稱，item[1] 是預算比例 (試算表抓出來可能是 "50%" 或 "0.5")
+                        // 我們利用這段程式碼將百分比字串安全轉換為純數字
+                        let ratioStr = String(item[1]).replace('%', '').trim();
+                        let ratioNum = parseFloat(ratioStr) || 0;
+
+                        // 預防格式問題：如果讀出來是小數點 (例如 0.5)，我們要把它轉回 50 顯示在畫面上
+                        if (ratioNum > 0 && ratioNum <= 1 && String(item[1]).indexOf('%') === -1) {
+                            ratioNum = ratioNum * 100;
+                        }
+
+                        editingItems.push({ name: item[0], ratio: ratioNum });
+                    });
+
+                    // 如果讀下來發現完全沒有項目 (全空白)，給予一個預設的空白輸入框
+                    if (editingItems.length === 0) {
+                        editingItems.push({ name: "", ratio: 0 });
+                    }
+
+                    renderBudgetRows(); // 將資料渲染到畫面上
+                } else {
+                    list.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
+                }
+            } catch (error) {
+                list.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路錯誤，無法讀取舊資料。</div>`;
+            }
+        }
+
+        // 渲染項目與防呆檢查
+        function renderBudgetRows() {
+            const list = document.getElementById('budget-items-list');
+            list.innerHTML = "";
+            let totalRatio = 0;
+
+            editingItems.forEach((item, idx) => {
+                totalRatio += Number(item.ratio);
+                list.innerHTML += `
+                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                    <input type="text" placeholder="項目名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
+                    <input type="number" placeholder="%" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
+                    <div style="color:#ff7675; font-size:24px; cursor:pointer; padding: 0 5px;" onclick="removeBudgetRow(${idx})">✖</div>
+                </div>
+            `;
+            });
+
+            // 100% 防呆檢查 (使用 Math.round 避免小數點運算誤差，例如 33.3+33.3+33.4 變成 99.99999%)
+            totalRatio = Math.round(totalRatio * 100) / 100;
+
+            const indicator = document.getElementById('budget-total-indicator');
+            const btn = document.getElementById('btn-save-budget');
+            indicator.innerText = `總預算比例：${totalRatio}%`;
+
+            if (totalRatio === 100) {
+                indicator.style.color = "#2ecc71"; // 綠色 (100% 正確)
+                btn.disabled = false;
+                btn.style.opacity = "1";
+            } else {
+                indicator.style.color = "#ff7675"; // 紅色 (非 100% 錯誤)
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+            }
         }
 
         function addBudgetRow() {
@@ -1042,39 +1121,6 @@
             editingItems.splice(index, 1);
             renderBudgetRows();
         }
-
-        function renderBudgetRows() {
-            const list = document.getElementById('budget-items-list');
-            list.innerHTML = "";
-            let totalRatio = 0;
-
-            editingItems.forEach((item, idx) => {
-                totalRatio += Number(item.ratio);
-                list.innerHTML += `
-                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
-                    <input type="text" placeholder="項目名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
-                    <input type="number" placeholder="%" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
-                    <div style="color:var(--red); font-size:24px; cursor:pointer;" onclick="removeBudgetRow(${idx})">✖</div>
-                </div>
-            `;
-            });
-
-            // 100% 防呆檢查
-            const indicator = document.getElementById('budget-total-indicator');
-            const btn = document.getElementById('btn-save-budget');
-            indicator.innerText = `總預算比例：${totalRatio}%`;
-
-            if (totalRatio === 100) {
-                indicator.style.color = "var(--green)";
-                btn.disabled = false;
-                btn.style.opacity = "1";
-            } else {
-                indicator.style.color = "var(--red)";
-                btn.disabled = true;
-                btn.style.opacity = "0.5"; // 沒達到 100% 按鈕反灰
-            }
-        }
-
         // 3. 儲存設定到後端
         async function saveBudgetSettings() {
             const btn = document.getElementById('btn-save-budget');
