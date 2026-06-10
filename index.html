@@ -957,10 +957,12 @@
         // ================= 報表與預算設定邏輯 =================
 
         // 1. 讀取並渲染報表
+        // 1. 讀取並渲染報表 (全新精緻排版版)
         async function loadReport() {
             const container = document.getElementById('report-container');
             container.innerHTML = `<div class="placeholder-box">⏳ 正在計算當月報表...</div>`;
 
+            // 您的 GAS API 網址
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
@@ -969,44 +971,57 @@
 
                 if (result.success) {
                     const data = result.data;
-                    // 繪製總收入卡片
+
+                    // 💡 調整 1：將「本月總收入」字樣改為直接用金額顯示（data.totalIncome[1] 是總收入金額）
                     let html = `
-                    <div style="background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; padding: 15px; border-radius: 12px; margin-bottom: 20px; text-align:center;">
-                        <div style="font-size:14px; color:#2ecc71;">本月總收入</div>
-                        <div style="font-size:28px; font-weight:bold; color:white;">$${data.totalIncome[1]}</div>
+                    <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); padding: 18px; border-radius: 16px; margin-bottom: 25px; text-align:center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+                        <div style="font-size: 24px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[1]}</div>
                     </div>
                 `;
 
-                    // 繪製各項目卡片
+                    // 項目卡片排版
                     data.items.forEach(item => {
+                        // 欄位定義：item[0]=項目名稱, item[1]=預算比例, item[2]=預算金額, item[3]=實際支出, item[4]=上月餘額, item[5]=結餘金額
+
                         html += `
-                    <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:10px; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px;">
-                            <span style="font-weight:bold; color:#d6a5ff; font-size:18px;">${item[0]} (${item[1]})</span>
-                            <span style="color:white; font-weight:bold;">餘: $${item[5]}</span>
+                    <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                        
+                        <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                            
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <span style="font-weight: bold; color: white; font-size: 18px; letter-spacing: 0.5px;">${item[0]}</span>
+                                <span style="font-size: 14px; color: var(--text-muted);">預算: <span style="color:#e0e0e0;">$${item[2]}</span></span>
+                            </div>
+                            
+                            <div style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                                <span>上月餘額: <span style="color: #9aa0a6;">$${item[4]}</span></span>
+                                <span>支出: <span style="color: #ff7675;">$${item[3]}</span></span>
+                            </div>
                         </div>
-                        <div style="display:flex; justify-content:space-between; font-size:14px; color:var(--text-muted);">
-                            <span>預算: $${item[2]}</span>
-                            <span>支出: $${item[3]}</span>
-                            <span>上月: $${item[4]}</span>
+                        
+                        <div style="text-align: right; min-width: 100px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
+                            <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
                         </div>
+
                     </div>`;
                     });
 
-                    // 繪製總結餘卡片
+                    // 總結餘底部卡片
                     html += `
-                    <div style="background: linear-gradient(135deg, rgba(159,53,255,0.4), rgba(89,28,158,0.6)); border: 1px solid #d6a5ff; padding: 15px; border-radius: 12px; margin-top: 20px; text-align:center;">
-                        <div style="font-size:14px; color:#e0e0e0;">總餘額</div>
-                        <div style="font-size:32px; font-weight:bold; color:white;">$${data.totalBalance[5]}</div>
+                    <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 18px; border-radius: 16px; margin-top: 25px; text-align:center; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2);">
+                        <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
+                        <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
                     </div>
                 `;
                     container.innerHTML = html;
+                } else {
+                    container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">❌ 運算失敗：${result.message}</div>`;
                 }
             } catch (error) {
-                container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">讀取失敗，請確認網路連線。</div>`;
+                container.innerHTML = `<div class="placeholder-box" style="color:var(--red);">❌ 讀取失敗，請確認網路連線。</div>`;
             }
         }
-
         // 2. 開啟編輯面板 (帶入空欄位或舊資料)
         let editingItems = [];
         function openBudgetEdit() {
