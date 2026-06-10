@@ -617,10 +617,15 @@
     </div>
 
     <script>
-        // 網頁載入時觸發
+        // 網頁載入時觸發的初始設定
         window.addEventListener('load', () => {
-            updateMonthDisplay();
-            spawnRandomDino(); // 召喚一隻恐龍
+            updateMonthDisplay(); // 更新頂部月份顯示
+            spawnRandomDino();    // 召喚雲端恐龍
+
+            // 如果一打開網頁就在報表頁，就先讀取一次
+            if (document.getElementById('page-report').classList.contains('active')) {
+                loadReport();
+            }
         });
 
         const dinoImages = [
@@ -631,6 +636,17 @@
         ];
         // ================= 前端控制邏輯 =================
         // 1. 頁面切換引擎
+        // ================= 前端控制邏輯 =================
+
+        // 💡 修復 1：確保網頁完全載入後，才去設定預設日期 (防呆機制)
+        window.addEventListener('DOMContentLoaded', () => {
+            const dateInput = document.getElementById('form-date');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+        });
+
+        // 💡 修復 2：頁面切換引擎 (加入自動觸發讀取報表的功能)
         function switchPage(pageId) {
             // 將所有 page 隱藏
             document.querySelectorAll('.page').forEach(page => {
@@ -641,6 +657,11 @@
 
             // 切換頁面時自動捲動到最上方
             window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // ★ 新增：如果切換到「收支報表」頁面，自動去讀取最新資料
+            if (pageId === 'page-report') {
+                loadReport();
+            }
         }
 
         // 2. 月份切換與雲端同步邏輯
