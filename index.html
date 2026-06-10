@@ -787,7 +787,7 @@
 
             <div class="toggle-group" style="margin-bottom: 25px;">
                 <div class="toggle-btn active" id="btn-chart-doughnut" onclick="changeChartType('doughnut')">圓環圖</div>
-                <div class="toggle-btn" id="btn-chart-pie" onclick="changeChartType('pie') font_download">圓餅圖</div>
+                <div class="toggle-btn" id="btn-chart-pie" onclick="changeChartType('pie')">圓餅圖</div>
                 <div class="toggle-btn" id="btn-chart-bar" onclick="changeChartType('bar')">長條圖</div>
             </div>
 
@@ -1576,7 +1576,7 @@
                 if (result.success && result.labels.length > 0) {
                     globalChartLabels = result.labels;
                     globalChartValues = result.values;
-                    loadingDiv.innerHTML = "📊 資料加載完成";
+                    loadingDiv.innerHTML = `${getRandomNonsense()}`;
 
                     // 渲染圖表
                     renderExpenseChart(currentChartType);
