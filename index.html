@@ -716,9 +716,6 @@
         window.onload = function () {
             updateMonthDisplay();
         };
-        // 自動將日期預設為今天
-        document.getElementById('record-date').valueAsDate = new Date();
-
         // 3. 送出記帳資料到 GAS (API 串接)
         async function submitRecord() {
             // 已經為您替換為專屬的 GAS API 網址
