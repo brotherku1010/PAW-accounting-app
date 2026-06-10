@@ -875,14 +875,46 @@
 
     <script>
         // 網頁載入時觸發的初始設定
-        window.addEventListener('load', () => {
+        // ================= 系統開機主動載入引擎 =================
+        window.addEventListener('load', async () => {
+            // 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
             updateMonthDisplay();
+
+            // 2. 召喚雲端隨機恐龍
             spawnRandomDino();
 
-            // 初始化載入主畫面動態屏幕
-            refreshHomeScreenUI();
+            // 3. 智慧防呆：一開網頁首頁大屏幕先顯示趣味載入中提示
+            const contentArea = document.getElementById('home-screen-content');
+            if (contentArea) {
+                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 正在連線雲端資產，${getRandomNonsense()}</div>`;
+            }
 
-            if (document.getElementById('page-report').classList.contains('active')) {
+            // 4. ★ 核心修復：開機主動向雲端發送請求，同步當月資產，存入 cachedReportData 快取中
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            try {
+                const response = await fetch(API_URL + "?action=getReport");
+                const result = await response.json();
+                if (result.success) {
+                    cachedReportData = result.data; // 下載完成，寫入全域快取
+                    isReportDataDirty = false;      // 標記為最新資料
+
+                    // 瞬間沖刷主畫面屏幕，完美秒秀出正確的項目分類與我的錢包金額！
+                    refreshHomeScreenUI();
+                } else {
+                    if (contentArea) {
+                        contentArea.innerHTML = `<div style="text-align:center; font-size:13px; color:var(--red); padding:30px 10px;">❌ 同步失敗：${result.message}</div>`;
+                    }
+                }
+            } catch (err) {
+                console.error("開機自動同步失敗:", err);
+                if (contentArea) {
+                    contentArea.innerHTML = `<div style="text-align:center; font-size:13px; color:var(--red); padding:30px 10px;">❌ 網路錯誤，無法載入初始金額。</div>`;
+                }
+            }
+
+            // 5. 如果使用者重整網頁時剛好停留在報表頁，也同步刷報表
+            const reportPage = document.getElementById('page-report');
+            if (reportPage && reportPage.classList.contains('active')) {
                 loadReport();
             }
         });
