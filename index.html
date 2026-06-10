@@ -271,8 +271,10 @@
         /* 輸入框暗黑化與完美置中修復 */
         .form-group input,
         .form-group select {
-            width: 98%;
-            /* 縮小一點點，避免瀏覽器計算誤差撐破畫面 */
+            width: 85%;
+            /* 大幅縮小為 85%，給兩側留出絕對充裕的空間 */
+            max-width: 320px;
+            /* 增加最大寬度限制 */
             margin: 0 auto;
             /* 強制水平置中 */
             padding: 14px 15px;
@@ -284,8 +286,9 @@
             color: white;
             box-sizing: border-box;
             display: block;
-            /* 確保 margin: 0 auto 能生效 */
             transition: all 0.2s;
+            text-align: center;
+            /* 讓輸入框與選單裡面的數值也置中 */
         }
 
         .form-group input:focus,
