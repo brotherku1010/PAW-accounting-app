@@ -7,23 +7,24 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4b6cb7">
     <title>專屬記帳 APP</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
 
     <style>
         /* ================= 系統共用變數與全域設定 (科技黑夜風) ================= */
         :root {
-            /* 主色調：科技紫搭配發光效果 */
             --primary: rgba(159, 53, 255, 0.8);
             --primary-glow: rgba(159, 53, 255, 0.4);
-            /* 背景與卡片：深邃黑與毛玻璃 */
             --bg: #12121a;
             --card-bg: rgba(255, 255, 255, 0.04);
             --card-border: rgba(255, 255, 255, 0.08);
-            /* 文字顏色 */
             --text-main: #ffffff;
             --text-muted: #9aa0a6;
+            /* ★ 新增：字體全域變數 */
+            --main-font: 'Noto Sans TC', sans-serif;
         }
 
         * {
@@ -31,9 +32,9 @@
         }
 
         body {
-            font-family: 'Noto Sans TC', sans-serif;
+            /* ★ 將原本寫死的字體改為讀取變數 */
+            font-family: var(--main-font);
             background-color: #08080c;
-            /* 電腦版外圍純黑背景 */
             color: var(--text-main);
             margin: 0;
             padding: 0;
@@ -42,7 +43,6 @@
             justify-content: center;
             font-size: 16px;
             color-scheme: dark;
-            /* 讓瀏覽器原生的捲軸、日期選擇器自動變暗色 */
         }
 
         /* 手機直版框架 + 背景環境光點綴 */
@@ -675,6 +675,16 @@
             <div class="placeholder-box">這裡將直接顯示從 Google Sheet 撈回來的原始陣列資料</div>
         </div>
 
+        <div onclick="toggleFont()"
+            style="position: absolute; bottom: 30px; left: 20px; width: 50px; height: 50px; background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; z-index: 100; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+            <span class="material-symbols-outlined" style="color: #d6a5ff; font-size: 24px;">font_download</span>
+        </div>
+
+        <div id="toast-msg"
+            style="position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(159,53,255,0.9); color: white; padding: 10px 20px; border-radius: 20px; z-index: 9999; font-size: 14px; box-shadow: 0 4px 15px var(--primary-glow); opacity: 0; transition: opacity 0.3s ease; pointer-events: none;">
+            已切換字體
+        </div>
+
     </div>
 
     <script>
@@ -1275,6 +1285,51 @@
             editingItems.splice(index, 1);
             renderBudgetRows();
         }
+        // ================= 字體切換系統 =================
+        const fontOptions = [
+            { name: "科技黑體", family: "'Noto Sans TC', sans-serif" },
+            { name: "質感明體", family: "'Noto Serif TC', serif" },
+            { name: "手寫楷體", family: "'LXGW WenKai TC', cursive" }
+        ];
+
+        // 讀取本機記憶的字體設定，沒有的話預設為 0 (黑體)
+        let currentFontIndex = parseInt(localStorage.getItem('app_font_index')) || 0;
+
+        // 套用字體的函式
+        function applyFont(index) {
+            const font = fontOptions[index];
+            // 變更 CSS 變數，全系統字體瞬間改變！
+            document.documentElement.style.setProperty('--main-font', font.family);
+            // 記憶使用者的選擇
+            localStorage.setItem('app_font_index', index);
+        }
+
+        // 點擊按鈕切換字體
+        function toggleFont() {
+            currentFontIndex = (currentFontIndex + 1) % fontOptions.length;
+            applyFont(currentFontIndex);
+
+            // 顯示小提示框
+            const toast = document.getElementById('toast-msg');
+            toast.innerText = `已切換：${fontOptions[currentFontIndex].name}`;
+            toast.style.opacity = '1';
+
+            // 2 秒後自動隱藏
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 2000);
+        }
+
+        // ================= 前端控制邏輯 =================
+        window.addEventListener('DOMContentLoaded', () => {
+            // ★ 網頁一載入就套用記憶的字體
+            applyFont(currentFontIndex);
+
+            const dateInput = document.getElementById('form-date');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+        });
     </script>
     <div id="success-modal" class="custom-modal-overlay">
         <div class="custom-modal">
