@@ -268,22 +268,23 @@
             letter-spacing: 0.5px;
         }
 
-        /* 輸入框暗黑化 */
+        /* 輸入框暗黑化與完美置中修復 */
         .form-group input,
         .form-group select {
-            width: 100%;
-            max-width: 100%;
-            margin: 0;
+            width: 98%;
+            /* 縮小一點點，避免瀏覽器計算誤差撐破畫面 */
+            margin: 0 auto;
+            /* 強制水平置中 */
             padding: 14px 15px;
             border-radius: 12px;
             border: 1px solid var(--card-border);
             font-size: 16px;
             font-family: inherit;
             background-color: rgba(0, 0, 0, 0.2);
-            /* 深色半透明背景 */
             color: white;
             box-sizing: border-box;
             display: block;
+            /* 確保 margin: 0 auto 能生效 */
             transition: all 0.2s;
         }
 
