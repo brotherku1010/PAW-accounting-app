@@ -8,56 +8,60 @@
     <meta name="theme-color" content="#4b6cb7">
     <title>專屬記帳 APP</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
 
     <style>
-        /* ================= 系統共用變數與全域設定 ================= */
+        /* ================= 系統共用變數與全域設定 (科技黑夜風) ================= */
         :root {
-            /* 主色調：#9F35FF 搭配 70% 透明度 */
-            --primary: rgba(159, 53, 255, 0.7);
-            /* 次色調：保留稍微深一點的紫色用來做漸層搭配 */
-            --secondary: rgba(159, 53, 255, 0.9);
-            --bg: #f2f4f6;
-            --card-bg: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
+            /* 主色調：科技紫搭配發光效果 */
+            --primary: rgba(159, 53, 255, 0.8);
+            --primary-glow: rgba(159, 53, 255, 0.4);
+            /* 背景與卡片：深邃黑與毛玻璃 */
+            --bg: #12121a;
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --card-border: rgba(255, 255, 255, 0.08);
+            /* 文字顏色 */
+            --text-main: #ffffff;
+            --text-muted: #9aa0a6;
         }
 
-        /* 確保所有元素都不會撐破寬度 */
         * {
             box-sizing: border-box;
         }
 
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background-color: #e0e0e0;
-            /* 電腦版外圍背景色 */
+            background-color: #08080c;
+            /* 電腦版外圍純黑背景 */
             color: var(--text-main);
             margin: 0;
             padding: 0;
             -webkit-font-smoothing: antialiased;
             display: flex;
             justify-content: center;
-            /* 讓版面在電腦版絕對置中 */
             font-size: 16px;
-            /* 整體基礎字體放大 */
+            color-scheme: dark;
+            /* 讓瀏覽器原生的捲軸、日期選擇器自動變暗色 */
         }
 
-        /* 手機直版框架 (嚴格最大寬度 500px) */
+        /* 手機直版框架 + 背景環境光點綴 */
         .app-container {
             width: 100%;
             max-width: 500px;
             min-height: 100vh;
             background-color: var(--bg);
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            /* 加入右上角的隱約紫色環境光 */
+            background-image: radial-gradient(circle at 80% 0%, rgba(159, 53, 255, 0.15) 0%, transparent 40%);
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
             position: relative;
             overflow-x: hidden;
         }
 
-        /* 頁面切換機制 */
         .page {
             display: none;
             padding: 20px;
-            animation: fadeIn 0.3s ease-out;
+            animation: fadeIn 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
             padding-bottom: 100px;
         }
 
@@ -68,31 +72,36 @@
         @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: translateY(15px);
+                filter: blur(5px);
             }
 
             to {
                 opacity: 1;
                 transform: translateY(0);
+                filter: blur(0);
             }
         }
 
-        /* ================= 元件樣式 ================= */
+        /* ================= 元件樣式 (毛玻璃與發光) ================= */
 
         /* 頂部月份切換器 */
         .month-selector {
             background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            /* 毛玻璃模糊效果 */
+            -webkit-backdrop-filter: blur(12px);
             border-radius: 30px;
             padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
             margin-bottom: 20px;
             font-weight: bold;
-            color: var(--primary);
+            color: #d6a5ff;
+            /* 亮紫色文字 */
             font-size: 18px;
-            /* 字體加大 */
         }
 
         .month-selector button {
@@ -102,39 +111,62 @@
             color: var(--text-muted);
             cursor: pointer;
             padding: 0 10px;
+            transition: color 0.2s;
+        }
+
+        .month-selector button:active {
+            color: white;
         }
 
         /* 主視覺：帳目餘額卡片 */
         .balance-card {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, rgba(159, 53, 255, 0.6) 0%, rgba(89, 28, 158, 0.8) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             color: white;
-            border-radius: 20px;
+            border-radius: 24px;
             padding: 25px;
-            box-shadow: 0 10px 25px rgba(138, 43, 226, 0.3);
-            /* 紫色陰影 */
+            /* 強烈的科技發光陰影 */
+            box-shadow: 0 12px 30px var(--primary-glow), inset 0 2px 5px rgba(255, 255, 255, 0.2);
             margin-bottom: 25px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 卡片內部的反光裝飾線 */
+        .balance-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transform: skewX(-25deg);
         }
 
         .balance-card .title {
-            font-size: 16px;
-            opacity: 0.9;
+            font-size: 15px;
+            opacity: 0.8;
             margin-bottom: 10px;
+            letter-spacing: 1px;
         }
 
         .balance-card .amount {
-            font-size: 40px;
+            font-size: 42px;
             font-weight: bold;
             margin-bottom: 15px;
+            font-family: monospace;
         }
 
         .balance-card .details {
             display: flex;
             justify-content: space-between;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.2);
             padding: 12px 15px;
-            border-radius: 12px;
-            font-size: 15px;
+            border-radius: 14px;
+            font-size: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         /* 選單網格 */
@@ -146,28 +178,33 @@
 
         .menu-item {
             background: var(--card-bg);
-            border-radius: 16px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
             padding: 20px 15px;
             text-align: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
         .menu-item:active {
-            transform: scale(0.96);
+            transform: scale(0.95);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .menu-item .icon {
             font-size: 32px;
             margin-bottom: 10px;
             display: block;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
         }
 
         .menu-item .text {
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 15px;
+            font-weight: 500;
             color: var(--text-main);
+            letter-spacing: 0.5px;
         }
 
         /* 浮動新增按鈕 (FAB) */
@@ -177,16 +214,17 @@
             right: 20px;
             width: 65px;
             height: 65px;
-            background: var(--primary);
+            background: linear-gradient(135deg, #b864ff, #801acc);
             color: white;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 32px;
-            box-shadow: 0 8px 20px rgba(138, 43, 226, 0.4);
+            font-size: 34px;
+            box-shadow: 0 8px 25px var(--primary-glow);
             cursor: pointer;
             z-index: 100;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .fab:active {
@@ -197,9 +235,9 @@
         .page-header {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             padding-bottom: 15px;
-            border-bottom: 2px solid #eaeaea;
+            border-bottom: 1px solid var(--card-border);
         }
 
         .page-header .back-btn {
@@ -212,57 +250,66 @@
         .page-header h2 {
             margin: 0;
             font-size: 20px;
-            color: var(--secondary);
+            color: white;
+            letter-spacing: 1px;
+            font-weight: 500;
         }
 
-        /* ================= 表單專屬樣式 ================= */
+        /* ================= 表單專屬樣式 (暗黑科技感) ================= */
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: var(--text-main);
-            font-weight: bold;
-            font-size: 16px;
+            color: var(--text-muted);
+            font-size: 14px;
+            letter-spacing: 0.5px;
         }
 
-        /* 確保輸入框字體至少 16px，避免 iOS 點擊時自動放大畫面 */
+        /* 輸入框暗黑化 */
         .form-group input,
         .form-group select {
             width: 100%;
             max-width: 100%;
-            /* 強制最大寬度不超過父元素 */
             margin: 0;
-            /* 消除瀏覽器預設外距 */
-            padding: 12px 15px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
+            padding: 14px 15px;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
             font-size: 16px;
             font-family: inherit;
-            background-color: #fafafa;
+            background-color: rgba(0, 0, 0, 0.2);
+            /* 深色半透明背景 */
+            color: white;
             box-sizing: border-box;
-            /* 嚴格計算邊框 */
             display: block;
+            transition: all 0.2s;
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
             border-color: var(--primary);
-            background-color: #fff;
-            box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.1);
+            background-color: rgba(0, 0, 0, 0.4);
+            box-shadow: 0 0 0 3px var(--primary-glow);
         }
 
-        /* 交易類型切換按鈕 */
+        /* 針對日期的圖示反白 */
+        ::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.6;
+        }
+
+        /* 切換按鈕暗黑化 */
         .toggle-group {
             display: flex;
-            background: #f0f0f0;
-            border-radius: 12px;
-            padding: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 14px;
+            padding: 6px;
             width: 100%;
             box-sizing: border-box;
+            border: 1px solid var(--card-border);
         }
 
         .toggle-btn {
@@ -271,37 +318,80 @@
             padding: 12px 0;
             border-radius: 10px;
             font-size: 15px;
-            /* 稍微縮小一點點，確保塞得下三個按鈕 */
-            font-weight: bold;
+            font-weight: 500;
             color: var(--text-muted);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
             white-space: nowrap;
-            /* 防止文字換行 */
         }
 
         .toggle-btn.active {
-            background: var(--card-bg);
-            color: #9F35FF;
-            /* 啟動時文字使用實心紫，確保清晰度 */
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 15px var(--primary-glow);
         }
 
+        /* 底部儲存按鈕 */
         .submit-btn {
             width: 100%;
             padding: 16px;
-            background: var(--primary);
+            background: linear-gradient(135deg, #b864ff, #801acc);
             color: white;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 18px;
             font-weight: bold;
+            letter-spacing: 1px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
+            box-shadow: 0 6px 20px var(--primary-glow);
+            transition: transform 0.1s;
         }
 
         .submit-btn:active {
-            transform: scale(0.98);
+            transform: scale(0.97);
+        }
+
+        /* ================= 恐龍全息投影特效 ================= */
+        .dino-mascot {
+            position: absolute;
+            z-index: 0;
+            opacity: 0.35;
+            /* 因為拿掉濾鏡了，透明度稍微調高一點讓原圖更清楚 */
+            pointer-events: none;
+
+            /* 修改遮罩：把 black 30% 縮小到 15%，透明邊界從 70% 縮小到 60%，這樣就能切除更多邊緣，只保留主體 */
+            mask-image: radial-gradient(circle at center, black 15%, transparent 60%);
+            -webkit-mask-image: radial-gradient(circle at center, black 15%, transparent 60%);
+
+            animation: floatDino 6s ease-in-out infinite alternate;
+            /* ★ 已經將原本的 filter (紫色濾鏡) 刪除，現在會完全呈現照片原本的顏色！ */
+        }
+
+        @keyframes floatDino {
+            0% {
+                transform: translateY(0px) rotate(-2deg);
+            }
+
+            100% {
+                transform: translateY(-15px) rotate(2deg);
+            }
+        }
+
+        /* 確保所有頁面內容在恐龍之上 */
+        .page {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 調整新圖標的大小與排版 */
+        .menu-item .material-symbols-outlined {
+            font-size: 36px;
+            margin-bottom: 12px;
+            display: block;
+            color: #d6a5ff;
+            /* 統一使用亮紫色 */
+            filter: drop-shadow(0 0 8px var(--primary-glow));
+            /* 圖標發光 */
         }
     </style>
 </head>
@@ -329,19 +419,19 @@
 
             <div class="menu-grid">
                 <div class="menu-item" onclick="switchPage('page-report')">
-                    <span class="icon">📊</span>
+                    <span class="material-symbols-outlined">bar_chart</span>
                     <span class="text">收支報表</span>
                 </div>
                 <div class="menu-item" onclick="switchPage('page-details')">
-                    <span class="icon">📝</span>
+                    <span class="material-symbols-outlined">receipt_long</span>
                     <span class="text">收支明細</span>
                 </div>
                 <div class="menu-item" onclick="switchPage('page-chart')">
-                    <span class="icon">pie_chart</span>
+                    <span class="material-symbols-outlined">donut_small</span>
                     <span class="text">支出報告圖</span>
                 </div>
                 <div class="menu-item" onclick="switchPage('page-raw')">
-                    <span class="icon">🗄️</span>
+                    <span class="material-symbols-outlined">database</span>
                     <span class="text">原始資料</span>
                 </div>
             </div>
@@ -497,8 +587,19 @@
     </div>
 
     <script>
-        // ================= 前端控制邏輯 =================
+        // 網頁載入時觸發
+        window.addEventListener('load', () => {
+            updateMonthDisplay();
+            spawnRandomDino(); // 召喚一隻恐龍
+        });
 
+        const dinoImages = [
+            'pexels-tkirkgoz-12845496.jpg',
+            'pexels-footage-kingdom-122917970-13825209.jpg',
+            'pexels-footage-kingdom-122917970-13825468.jpg',
+            'pexels-enginakyurt-6348818.jpg'
+        ];
+        // ================= 前端控制邏輯 =================
         // 1. 頁面切換引擎
         function switchPage(pageId) {
             // 將所有 page 隱藏
@@ -735,6 +836,44 @@
 
             // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
             updateFormVisibility();
+        }
+        // ================= 恐龍生成系統 (雲端動態版) =================
+        async function spawnRandomDino() {
+            // ★★★ 確保這裡的網址是您最新的 GAS API 網址 ★★★
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                // 向 GAS 請求圖片清單 (加上 ?action=getImages)
+                const response = await fetch(API_URL + "?action=getImages");
+                const result = await response.json();
+
+                // 如果成功拿到圖片陣列，且資料夾不是空的
+                if (result.success && result.images.length > 0) {
+                    const container = document.querySelector('.app-container');
+
+                    // 隨機抽一張圖
+                    const randomImgUrl = result.images[Math.floor(Math.random() * result.images.length)];
+
+                    const dinoImg = document.createElement('img');
+                    dinoImg.src = randomImgUrl;
+                    dinoImg.className = 'dino-mascot';
+
+                    // 隨機決定大小與位置
+                    dinoImg.style.width = Math.floor(Math.random() * 120 + 250) + 'px';
+                    dinoImg.style.bottom = Math.floor(Math.random() * 20 + 10) + '%';
+
+                    if (Math.random() > 0.5) {
+                        dinoImg.style.left = '-30px';
+                    } else {
+                        dinoImg.style.right = '-30px';
+                        dinoImg.style.transform = 'scaleX(-1)';
+                    }
+
+                    container.appendChild(dinoImg);
+                }
+            } catch (error) {
+                console.log("無法召喚恐龍：", error);
+            }
         }
     </script>
 
