@@ -917,7 +917,7 @@
             // 3. 智慧防呆：一開網頁首頁大屏幕先顯示趣味載入中提示
             const contentArea = document.getElementById('home-screen-content');
             if (contentArea) {
-                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 正在連線雲端資產，${getRandomNonsense()}</div>`;
+                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 幫您掐指一算，${getRandomNonsense()}</div>`;
             }
 
             // 4. ★ 核心修復：開機主動向雲端發送請求，同步當月資產，存入 cachedReportData 快取中
@@ -957,7 +957,9 @@
             'pexels-enginakyurt-6348818.jpg'
         ];
         // ================= 趣味載入語錄 (廢話 JSON 陣列) =================
+        // ================= 趣味載入等待語錄庫 =================
         const loadingQuotes = [
+            // 原有廢話系列
             "在非洲，每六十秒，就有一分鐘過去...",
             "凡是每天喝水的人，有高機率在100年內死去...",
             "每呼吸60秒，就減少一分鐘的壽命...",
@@ -971,20 +973,62 @@
             "今年中秋節剛好是滿月、今年七夕恰逢鬼月...",
             "人被殺，就會死...",
             "台灣競爭力低落，在美國就連小學生都會說流利的英語...",
-            "我知道你很冷！但你先不要冷..."
-        ];
+            "我知道你很冷！但你先不要冷...",
 
-        // ================= 主畫面金額遮蔽專用語錄 =================
-        const maskedQuotes = [
-            "這裡沒錢，去看報表啦！",
-            "只要我不看餘額，我就是有錢人",
-            "這期威力彩頭獎得主不是我",
-            "談戀愛好麻煩，所以我選擇記帳",
-            "錢沒有消失，只是變成你喜歡的樣子",
-            "我知道你很冷！但你先不要冷",
-            "喜歡一個人太累了，我要喜歡十個！",
-            "只要每天省下一杯奶茶的錢，十天後就能買十杯奶茶"
+            // 新增幹話與幽默語錄
+            "所謂的好學生只不過是做壞事沒有被老師發現而已",
+            "如果我有什麼讓你不舒服的地方，麻煩你自己克服一下",
+            "十年前，你周圍的人會根據你父母的收入對待你。十年後，你周圍的人會根據你的收入對待你父母",
+            "賴床是對周末最起碼的尊重",
+            "我一直把錢視為空氣，因為沒有它我就不能活。",
+            "拋出去的磚頭不一定能引玉，倒有可能砸到人。",
+            "要適當吃一點，才有力氣減肥。",
+            "現在的社會，插隊都得排隊。",
+            "每次考試的時候我都這樣安慰自己：重在參與。",
+            "我的優點：勇於認錯；缺點：堅決不改。",
+            "有人考試靠實力，有人考試靠視力，而我考試靠的是豐富的想像力。",
+            "知識就像內褲，看不見但很重要。",
+            "小時候我以為自己長大後可以拯救整個世界，等長大後才發現整個世界都拯救不了我。",
+            "人生最大的悲哀就是青春不在，青春痘卻還在。",
+            "天沒降大任於我，照樣苦我心智，勞我筋骨。",
+            "跌倒了站起來，換個好看的姿勢再倒下去。",
+            "我這人除了誘惑，什麼都能抵擋。",
+            "哼，冬天最流氓了，總是喜歡對我凍手凍腳。",
+            "我談過最長的戀愛，就是自戀。愛自己，沒有情敵。",
+            "扔硬幣，正面就去上網，反面就是睡覺，立起來就去寫作業。",
+            "心裡的話，說出來可能是詩，但留在肚子裡肯定會變成屎。",
+            "世上只有騙子是真心的，因為他是真心騙你的。",
+            "我賤癌入骨，醫生說是晚期，沒得救了。",
+            "不管考試考成什麼樣，我都相信自己前途無量。",
+            "我這一生，最深情綿長的注視都給了手機。",
+            "我一直在忙著無聊！",
+            "做為一隻禽獸，我深感壓力很大…",
+            "我允許你走進我的世界，但決不允許你在我的世界裡走來走去。",
+            "就算我是一坨屎，我也是一坨有思想的屎！",
+            "我想把我的一生濃縮成一句笑話。",
+            "不以風騷驚天下，就以淫蕩動世人",
+            "我太純潔了，我純潔的都有些無恥了！",
+            "想做你的太陽，高興的時候溫暖你，不高興的的時候曬死你。",
+            "上學就是，不去老師不爽，去了自己不爽。",
+            "女人喜歡長的壞壞的男人，而不是長壞的男人。",
+            "開車無難事，只怕有新人。",
+            "哥混到現在，拿得起，放得下的只有筷子。",
+            "我問上帝：怎樣才可以對悲傷的事情一邊笑，一邊忘記？上帝回答：把自己弄的瘋掉。",
+            "青春就像衛生紙，看著挺多的，用著用著就不夠。",
+            "有事做的時候我們把忙碌當作累，沒事做的時候我們卻把放鬆當作無聊。",
+            "人生沒有彩排，每天都是現場直播!",
+            "我是一隻小小小小鳥，想要吃呀吃卻怎麼也吃不飽。",
+            "你要是不會玩生活，生活就把你玩了。",
+            "一早醒來我以為我長大了，原來是被子蓋橫了。",
+            "虛偽的人不要跟我說對不起。你滾就是最好的道歉。",
+            "國家為什麼沒有拿你的臉皮去研究防彈衣呢？",
+            "最可怕的不是公主病。可怕的是明明一點都不像公主，還特別有病。",
+            "我不是討厭你，只是從你身上沒有看到一樣是我喜歡的！",
+            "姑娘，你的床總是人來人往，那麼繁忙。",
+            "如果我做了皇帝，一定封你當太監。",
+            "曾經滄海難為水，魚香肉絲配雞腿。"
         ];
+        // ================= 趣味載入等待與遮蔽語錄庫 =================
 
         function getRandomMaskedText() {
             const idx = Math.floor(Math.random() * maskedQuotes.length);
@@ -1340,7 +1384,7 @@
         // 2. 讀取錢包資料
         async function loadWalletManage() {
             const container = document.getElementById('wallet-manage-container');
-            container.innerHTML = `<div class="placeholder-box">⏳ 讀取金庫資料中...</div>`;
+            container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
@@ -1399,7 +1443,7 @@
             }
 
             // 💡 視窗 1：跳出「處理中」進度視窗
-            showCustomAlert("⏳", "處理中", "正在為您開通新帳戶並部署公式...");
+            showCustomAlert("⏳", "處理中", "正在為您敞開新的世界...");
 
             // 💡 智慧防呆：尋找剛剛跳出的 Alert 視窗底下的所有按鈕，並將其隱藏，防止使用者誤觸關閉
             const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
@@ -1438,7 +1482,7 @@
             showConfirmModal("刪除帳戶確認", `確定要註銷「${walletName}」嗎？相關的結餘歷史也會一併移除且無法復原喔！`, async () => {
 
                 // 💡 視窗 1：跳出「刪除中」進度視窗
-                showCustomAlert("⏳", "處理中", "正在關閉帳戶並移除資料...");
+                showCustomAlert("⏳", "處理中", "期待與您再次相見...");
 
                 // 💡 智慧防呆：將刪除進行中視窗底下的按鈕全部鎖定隱藏
                 const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
@@ -1804,7 +1848,7 @@
             // 1. 打開視窗並重置標題與載入狀態
             document.getElementById('category-details-title').innerHTML = `<span class="material-symbols-outlined">receipt_long</span> <span>${categoryName} 明細</span>`;
             const contentArea = document.getElementById('category-details-content');
-            contentArea.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-muted);">⏳ 正在連線撈取...</div>`;
+            contentArea.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-muted);">⏳ ${getRandomNonsense()}</div>`;
             document.getElementById('category-details-modal').style.display = 'flex';
 
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
@@ -2234,7 +2278,7 @@
 
         function executeDeleteRecord(id) {
             showConfirmModal("確認刪除該筆資料？", "刪除後報表將自動重算，且無法復原喔！", async () => {
-                showCustomAlert("⏳", "處理中", "正在連接資料庫刪除資料...");
+                showCustomAlert("⏳", "處理中", "正在幫您竄改中，嚴請肅靜！");
                 const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
                 try {
                     const response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecord", id: id }) });
@@ -2260,7 +2304,7 @@
             // 呼叫雙按鈕的 Modal
             showConfirmModal("確認刪除該筆資料？", "刪除後報表將自動重算，且無法復原喔！", async () => {
 
-                showCustomAlert("⏳", "處理中", "正在連接資料庫刪除資料...");
+                showCustomAlert("⏳", "處理中", "正在幫您竄改中，嚴請肅靜！");
                 const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
                 try {
@@ -2331,14 +2375,14 @@
             if (isAmountHidden) {
                 contentArea.innerHTML = `
                     <div style="text-align: center; font-size: 16px; font-weight: bold; color: #ff7675; font-style: italic; padding: 30px 10px; line-height:1.5;">
-                        🤫 [已開啟隱私防護]<br><span style="color:white; font-size:14px; font-weight:normal; display:inline-block; margin-top:10px;">"${getRandomMaskedText()}"</span>
+                        🤫 [看不見我~]<br><span style="color:white; font-size:14px; font-weight:normal; display:inline-block; margin-top:10px;">"${getRandomMaskedText()}"</span>
                     </div>`;
                 return;
             }
 
             // 快取安全檢查
             if (!cachedReportData) {
-                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 請先前往「收支報表」或點選左右換月以同步雲端資產...</div>`;
+                contentArea.innerHTML = `<div style="text-align:center; font-size:14px; color:var(--text-muted); padding:30px 0;">⏳ 請回報錯誤，這一定有問題...</div>`;
                 return;
             }
 
