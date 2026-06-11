@@ -1019,7 +1019,7 @@
             // A. 前往收支報表
             if (pageId === 'page-report') loadReport();
             // B. 前往明細
-            if (pageId === 'page-details') loadDetails('全部');
+            if (pageId === 'page-details') loadDetails('支出');
             // C. 前往圖表
             if (pageId === 'page-chart') loadChartData();
 
@@ -1515,7 +1515,8 @@
 
             data.items.forEach(item => {
                 html += `
-                <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                <div onclick="showCategoryDetails('${item[0]}')" style="cursor: pointer; background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px; transition: background 0.2s, transform 0.1s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform='scale(1)'" onmouseleave="this.style.transform='scale(1)'">
+                    
                     <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <span style="font-weight: bold; color: white; font-size: 18px; letter-spacing: 0.5px;">${item[0]}</span>
@@ -1526,10 +1527,15 @@
                             <span>支出: <span style="color: #ff7675;">$${item[3]}</span></span>
                         </div>
                     </div>
-                    <div style="text-align: right; min-width: 100px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
-                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
-                        <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
+                    
+                    <div style="display: flex; align-items: center; gap: 12px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
+                        <div style="text-align: right; min-width: 80px;">
+                            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
+                            <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
+                        </div>
+                        <span class="material-symbols-outlined" style="color: var(--text-muted); font-size: 18px; opacity: 0.5;">chevron_right</span>
                     </div>
+
                 </div>`;
             });
 
@@ -1788,6 +1794,58 @@
             };
 
             document.getElementById('custom-alert-modal').style.display = 'flex';
+        }
+        // ================= 項目明細彈窗控制 =================
+        function closeCategoryDetailsModal() {
+            document.getElementById('category-details-modal').style.display = 'none';
+        }
+
+        async function showCategoryDetails(categoryName) {
+            // 1. 打開視窗並重置標題與載入狀態
+            document.getElementById('category-details-title').innerHTML = `<span class="material-symbols-outlined">receipt_long</span> <span>${categoryName} 明細</span>`;
+            const contentArea = document.getElementById('category-details-content');
+            contentArea.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-muted);">⏳ 正在連線撈取...</div>`;
+            document.getElementById('category-details-modal').style.display = 'flex';
+
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                // 發送 GET 請求，附帶要查詢的項目名稱
+                const response = await fetch(`${API_URL}?action=getCategoryDetails&category=${encodeURIComponent(categoryName)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.data.length === 0) {
+                        contentArea.innerHTML = `
+                            <div style="text-align:center; padding: 40px 0; color: var(--text-muted); display:flex; flex-direction:column; gap:10px; align-items:center;">
+                                <span class="material-symbols-outlined" style="font-size:36px; opacity:0.3;">draft</span>
+                                <span>本月尚無任何支出紀錄喔！</span>
+                            </div>`;
+                        return;
+                    }
+
+                    // 開始組裝明細卡片
+                    let html = '';
+                    result.data.forEach(item => {
+                        html += `
+                        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 14px 16px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; flex-direction: column; gap: 6px;">
+                                <span style="color: white; font-size: 15px; font-weight: bold; letter-spacing: 0.5px;">${item.note || '無備註'}</span>
+                                <span style="color: var(--text-muted); font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                                    <span class="material-symbols-outlined" style="font-size:14px;">account_balance_wallet</span>
+                                    ${item.wallet || '未指定'}
+                                </span>
+                            </div>
+                            <span style="color: #ff7675; font-weight: bold; font-family: monospace; font-size: 18px;">$${item.amount}</span>
+                        </div>`;
+                    });
+                    contentArea.innerHTML = html;
+                } else {
+                    contentArea.innerHTML = `<div style="text-align:center; color: #ff7675; padding: 30px 0;">❌ 讀取失敗：${result.message}</div>`;
+                }
+            } catch (error) {
+                contentArea.innerHTML = `<div style="text-align:center; color: #ff7675; padding: 30px 0;">❌ 網路連線錯誤，請稍後再試。</div>`;
+            }
         }
 
         // ================= 第二大項-收支明細，控制系統 =================
@@ -2351,6 +2409,28 @@
                 <button id="confirm-btn"
                     style="flex: 1; background: linear-gradient(135deg, #ff7675, #d63031); box-shadow: 0 4px 15px rgba(255, 118, 117, 0.3);">確認刪除</button>
             </div>
+        </div>
+    </div>
+    <div id="category-details-modal" class="custom-modal-overlay">
+        <div class="custom-modal"
+            style="width: 90%; max-width: 400px; max-height: 80vh; display: flex; flex-direction: column; padding: 25px 20px;">
+
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+                <h3 id="category-details-title"
+                    style="margin: 0; color: #d6a5ff; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                    <span class="material-symbols-outlined">receipt_long</span> <span>載入中...</span>
+                </h3>
+                <div onclick="closeCategoryDetailsModal()"
+                    style="width: 32px; height: 32px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; color: white;">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">close</span>
+                </div>
+            </div>
+
+            <div id="category-details-content"
+                style="overflow-y: auto; flex: 1; padding-right: 5px; display: flex; flex-direction: column; gap: 10px;">
+            </div>
+
         </div>
     </div>
 </body>
