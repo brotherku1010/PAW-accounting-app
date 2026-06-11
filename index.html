@@ -581,6 +581,11 @@
             color: white;
             box-shadow: 0 2px 8px var(--primary-glow);
         }
+
+        /* 讓圖表畫布支援手指游標 */
+        canvas {
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -2058,10 +2063,11 @@
         }
 
         // 2. 利用 Chart.js 繪製高質感科技風圖表
+        // 2. 利用 Chart.js 繪製高質感科技風圖表 (已加入點擊下鑽明細功能)
         function renderExpenseChart(type) {
             const ctx = document.getElementById('expenseChart').getContext('2d');
 
-            // 防呆：如果畫面上已經有舊圖表在跑，必須先銷毀(destroy)才能畫新的，否則圖表滑過時會閃爍破圖
+            // 防呆：如果畫面上已經有舊圖表在跑，必須先銷毀(destroy)才能畫新的
             if (myChartInstance) {
                 myChartInstance.destroy();
             }
@@ -2076,7 +2082,7 @@
                 'rgba(230, 126, 34, 0.75)',  // 暖陽橘
                 'rgba(26, 188, 156, 0.75)'   // 青碧色
             ];
-            const techBorders = techColors.map(color => color.replace('0.75', '1')); // 邊框使用實心純色
+            const techBorders = techColors.map(color => color.replace('0.75', '1'));
 
             // 全域配置：將 Chart.js 的預設文字顏色全部改成配合您暗黑模式的白色
             Chart.defaults.color = '#ffffff';
@@ -2092,15 +2098,32 @@
                         backgroundColor: techColors,
                         borderColor: techBorders,
                         borderWidth: 1.5,
-                        hoverOffset: 15 // 滑過卡片時突出的動態特效
+                        hoverOffset: 15
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+
+                    // ─── ★ 新增：滑鼠點擊圖表區塊時觸發 ───
+                    onClick: (event, activeElements, chart) => {
+                        if (activeElements.length > 0) {
+                            const index = activeElements[0].index;
+                            const label = chart.data.labels[index];
+
+                            // 呼叫您上一段寫好的明細浮動視窗函式
+                            showCategoryDetails(label);
+                        }
+                    },
+
+                    // ─── ★ 新增：滑鼠游標移入時變成「點擊手指」 ───
+                    onHover: (event, activeElements) => {
+                        event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
+                    },
+
                     plugins: {
                         legend: {
-                            position: type === 'bar' ? 'none' : 'bottom', // 如果是長條圖就藏起標籤
+                            position: type === 'bar' ? 'none' : 'bottom',
                             labels: { padding: 15, font: { size: 13 } }
                         },
                         tooltip: {
@@ -2111,9 +2134,12 @@
                             borderWidth: 1,
                             padding: 12,
                             callbacks: {
-                                // 提示框滑過時自動加上漂亮的「$」符號
                                 label: function (context) {
                                     return ` 金額: $${context.raw}`;
+                                },
+                                // ─── ★ 新增：在 Tooltip 底部加入提示文字 ───
+                                footer: function (tooltipItems) {
+                                    return '\n👉 點擊查看支出明細';
                                 }
                             }
                         }
@@ -2121,11 +2147,10 @@
                     scales: type === 'bar' ? {
                         y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { font: { family: 'monospace' } } },
                         x: { grid: { display: false } }
-                    } : {} // 圓餅圖與圓環圖不需要 X、Y 軸
+                    } : {}
                 }
             });
         }
-
         // 3. 切換圖表型態的按鈕邏輯
         function changeChartType(type) {
             currentChartType = type;
