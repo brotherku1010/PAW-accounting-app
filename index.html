@@ -861,13 +861,44 @@
                 <div class="radial-item item-2" onclick="alert('主題色調功能開發中...'); closeSettingsMenu();" title="主題色調">
                     <span class="material-symbols-outlined">palette</span>
                 </div>
-                <div class="radial-item item-3" onclick="alert('管理錢包功能開發中...'); closeSettingsMenu();" title="管理錢包">
+                <div class="radial-item item-3" onclick="switchPage('page-wallet-manage'); closeSettingsMenu();"
+                    title="管理錢包">
                     <span class="material-symbols-outlined">account_balance_wallet</span>
                 </div>
             </div>
 
             <div class="fab-settings" onclick="toggleSettingsMenu(event)">
                 <span class="material-symbols-outlined">settings</span>
+            </div>
+        </div>
+
+        <div id="page-wallet-manage" class="page">
+            <div class="page-header">
+                <div class="back-btn" onclick="switchPage('page-home')">❮</div>
+                <h2>管理錢包</h2>
+                <div id="btn-toggle-wallet-edit"
+                    style="margin-left:auto; font-size:22px; cursor:pointer; color: var(--text-muted);"
+                    onclick="toggleWalletEditMode()">
+                    <span class="material-symbols-outlined">edit</span>
+                </div>
+            </div>
+
+            <div id="wallet-manage-container" style="margin-bottom: 25px; min-height: 100px;">
+                <div class="placeholder-box">等待載入錢包資料...</div>
+            </div>
+
+            <div
+                style="background: rgba(255,255,255,0.05); border: 1px dashed rgba(255,255,255,0.15); padding: 18px; border-radius: 16px;">
+                <h3
+                    style="margin-top:0; margin-bottom:12px; color:#d6a5ff; font-size:15px; display:flex; align-items:center; gap:5px;">
+                    <span class="material-symbols-outlined" style="font-size:18px;">add_circle</span> 新增實體帳戶
+                </h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="input-new-wallet" placeholder="輸入名稱 (例: 富邦銀行)"
+                        style="flex: 1; padding: 12px 15px; border-radius: 12px; border: 1px solid var(--card-border); background: var(--card-bg); color: white; font-size: 15px;">
+                    <button onclick="executeAddWallet()"
+                        style="background: var(--primary); color: white; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow);">新增</button>
+                </div>
             </div>
         </div>
 
@@ -963,6 +994,8 @@
         // 全域變數：記錄主畫面看板狀態
         let isAmountHidden = localStorage.getItem('app_isAmountHidden') === 'true';
         let currentHomeTab = localStorage.getItem('app_currentHomeTab') || 'category';
+        let isWalletEditMode = false;
+        let cachedManageWallets = [];
         // 💡 修復 1：確保網頁完全載入後，才去設定預設日期 (防呆機制)
         window.addEventListener('DOMContentLoaded', () => {
             const dateInput = document.getElementById('form-date');
@@ -1020,6 +1053,16 @@
                 } else {
                     refreshHomeScreenUI();
                 }
+            }
+            // F. 前往「管理錢包」
+            if (pageId === 'page-wallet-manage') {
+                isWalletEditMode = false;
+                const editBtn = document.getElementById('btn-toggle-wallet-edit');
+                if (editBtn) {
+                    editBtn.style.color = 'var(--text-muted)';
+                    editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+                }
+                loadWalletManage();
             }
         }
         function getRandomNonsense() {
@@ -1278,8 +1321,126 @@
                 console.log("無法召喚插圖：", error);
             }
         }
-        // 1. 讀取並渲染報表 (全新精緻排版版)
-        // ================= 報表與預算設定邏輯 =================
+        // 1. 開關編輯模式
+        function toggleWalletEditMode() {
+            isWalletEditMode = !isWalletEditMode;
+            const editBtn = document.getElementById('btn-toggle-wallet-edit');
+            if (editBtn) {
+                if (isWalletEditMode) {
+                    editBtn.style.color = '#ff7675';
+                    editBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span>';
+                } else {
+                    editBtn.style.color = 'var(--text-muted)';
+                    editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
+                }
+            }
+            renderWalletManageHTML();
+        }
+
+        // 2. 讀取錢包資料
+        async function loadWalletManage() {
+            const container = document.getElementById('wallet-manage-container');
+            container.innerHTML = `<div class="placeholder-box">⏳ 讀取金庫資料中...</div>`;
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                const response = await fetch(API_URL + "?action=getWalletsManage");
+                const result = await response.json();
+                if (result.success) {
+                    cachedManageWallets = result.data;
+                    renderWalletManageHTML();
+                } else {
+                    container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路錯誤，請稍後再試。</div>`;
+            }
+        }
+
+        // 3. 渲染錢包列表
+        function renderWalletManageHTML() {
+            const container = document.getElementById('wallet-manage-container');
+            if (cachedManageWallets.length === 0) {
+                container.innerHTML = `<div class="placeholder-box">目前沒有任何錢包，請在下方新增！</div>`;
+                return;
+            }
+
+            let html = '';
+            cachedManageWallets.forEach(wallet => {
+                html += `
+            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 15px 20px; border-radius: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span class="material-symbols-outlined" style="color: #3498db; background: rgba(52, 152, 219, 0.1); padding: 8px; border-radius: 10px;">account_balance</span>
+                    <div>
+                        <div style="font-weight: bold; color: white; font-size: 16px;">${wallet.name}</div>
+                        <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">目前餘額: $${wallet.balance}</div>
+                    </div>
+                </div>
+                <div onclick="executeDeleteWallet(${wallet.row}, '${wallet.name}')" style="display: ${isWalletEditMode ? 'flex' : 'none'}; width: 40px; height: 40px; background: rgba(255, 118, 117, 0.15); border-radius: 10px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
+                    <span class="material-symbols-outlined">delete</span>
+                </div>
+            </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // 4. 新增錢包
+        async function executeAddWallet() {
+            const inputObj = document.getElementById('input-new-wallet');
+            const name = inputObj.value.trim();
+            if (!name) {
+                showCustomAlert("⚠️", "請注意", "帳戶名稱不能為空白喔！");
+                return;
+            }
+            // 檢查是否重複
+            if (cachedManageWallets.some(w => w.name === name)) {
+                showCustomAlert("⚠️", "名稱重複", "已經有同名的錢包囉！");
+                return;
+            }
+
+            showCustomAlert("⏳", "處理中", "正在為您開通新帳戶並部署公式...");
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    redirect: "follow",
+                    body: JSON.stringify({ action: "addWallet", name: name })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    inputObj.value = ""; // 清空輸入框
+                    isReportDataDirty = true; // 標記報表與首頁需刷新
+                    showCustomAlert("✅", "開戶成功", result.message, () => loadWalletManage());
+                } else {
+                    showCustomAlert("❌", "新增失敗", result.message);
+                }
+            } catch (error) { showCustomAlert("❌", "連線錯誤", error.message); }
+        }
+
+        // 5. 刪除錢包
+        function executeDeleteWallet(rowId, walletName) {
+            showConfirmModal("刪除帳戶確認", `確定要註銷「${walletName}」嗎？相關的結餘歷史也會一併移除且無法復原喔！`, async () => {
+                showCustomAlert("⏳", "處理中", "正在關閉帳戶並移除資料...");
+                const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                try {
+                    const response = await fetch(API_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "text/plain;charset=utf-8" },
+                        redirect: "follow",
+                        body: JSON.stringify({ action: "deleteWallet", row: rowId, name: walletName })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        isReportDataDirty = true;
+                        showCustomAlert("✅", "註銷成功", result.message, () => loadWalletManage());
+                    } else {
+                        showCustomAlert("❌", "刪除失敗", result.message);
+                    }
+                } catch (error) { showCustomAlert("❌", "連線錯誤", error.message); }
+            });
+        }
+        // ================= 第一大項-收支報表，控制系統 =================
         // 全域快取變數
         let cachedReportData = null;
         let isReportDataDirty = true; // 標記是否需要重新讀取 (true = 需要)
@@ -1475,7 +1636,7 @@
                 if (result.success) {
                     isReportDataDirty = true;
                     // ★ 改用共用函式呼叫
-                    showCustomAlert("✅", "設定完成", "項目與預算公式已全數更新", () => {
+                    showCustomAlert("✅", "新增咯", "已定是新增了啦~相信專業", () => {
                         switchPage('page-report');
                     });
                 }
