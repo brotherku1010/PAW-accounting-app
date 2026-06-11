@@ -1238,11 +1238,11 @@
         }
         // ================= 恐龍生成系統 (雲端動態版) =================
         async function spawnRandomDino() {
-            // ★★★ 確保這裡的網址是您最新的 GAS API 網址 ★★★
+            // ★ 確保這裡的網址是您最新的 GAS API 網址
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
-                // 向 GAS 請求圖片清單 (加上 ?action=getImages)
+                // 向 GAS 請求圖片清單
                 const response = await fetch(API_URL + "?action=getImages");
                 const result = await response.json();
 
@@ -1250,36 +1250,36 @@
                 if (result.success && result.images.length > 0) {
                     const container = document.querySelector('.app-container');
 
-                    // 隨機抽一張圖
-                    const randomImgUrl = result.images[Math.floor(Math.random() * result.images.length)];
+                    // 💡 核心修正：用 forEach 迴圈，把後端傳來的 2 張圖都畫出來！
+                    result.images.forEach((imgUrl, index) => {
+                        const dinoImg = document.createElement('img');
+                        dinoImg.src = imgUrl;
+                        dinoImg.className = 'dino-mascot';
 
-                    const dinoImg = document.createElement('img');
-                    dinoImg.src = randomImgUrl;
-                    dinoImg.className = 'dino-mascot';
+                        // 隨機決定每張圖的大小 (200px ~ 320px 之間)
+                        dinoImg.style.width = Math.floor(Math.random() * 120 + 200) + 'px';
 
-                    // 隨機決定大小與位置
-                    dinoImg.style.width = Math.floor(Math.random() * 120 + 250) + 'px';
-                    dinoImg.style.bottom = Math.floor(Math.random() * 20 + 10) + '%';
+                        // 隨機決定高度 (為了避免兩張重疊在一起，給予一點隨機錯落感)
+                        dinoImg.style.bottom = Math.floor(Math.random() * 25 + 5) + '%';
 
-                    if (Math.random() > 0.5) {
-                        dinoImg.style.left = '-30px';
-                    } else {
-                        dinoImg.style.right = '-30px';
-                        dinoImg.style.transform = 'scaleX(-1)';
-                    }
+                        // 💡 智慧排版：第 1 張 (index 0) 固定放左邊，第 2 張 (index 1) 固定放右邊
+                        if (index % 2 === 0) {
+                            dinoImg.style.left = '-30px';
+                        } else {
+                            dinoImg.style.right = '-30px';
+                            dinoImg.style.transform = 'scaleX(-1)'; // 讓右邊的圖面向左邊
+                        }
 
-                    container.appendChild(dinoImg);
+                        // 將圖片加入畫面上
+                        container.appendChild(dinoImg);
+                    });
                 }
             } catch (error) {
-                console.log("無法召喚恐龍：", error);
+                console.log("無法召喚插圖：", error);
             }
         }
-        // ================= 報表與預算設定邏輯 =================
-
-        // 1. 讀取並渲染報表
         // 1. 讀取並渲染報表 (全新精緻排版版)
         // ================= 報表與預算設定邏輯 =================
-
         // 全域快取變數
         let cachedReportData = null;
         let isReportDataDirty = true; // 標記是否需要重新讀取 (true = 需要)
