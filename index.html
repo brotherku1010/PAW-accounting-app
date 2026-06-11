@@ -1385,6 +1385,7 @@
         }
 
         // 4. 新增錢包
+        // 4. 新增錢包
         async function executeAddWallet() {
             const inputObj = document.getElementById('input-new-wallet');
             const name = inputObj.value.trim();
@@ -1398,7 +1399,7 @@
                 return;
             }
 
-            showCustomAlert("⏳", "處理中", "正在為您開通新帳戶並部署公式...");
+            // ★ 已移除「處理中」視窗，直接在背景安靜發送請求
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
             try {
                 const response = await fetch(API_URL, {
@@ -1408,16 +1409,19 @@
                     body: JSON.stringify({ action: "addWallet", name: name })
                 });
                 const result = await response.json();
+
                 if (result.success) {
                     inputObj.value = ""; // 清空輸入框
                     isReportDataDirty = true; // 標記報表與首頁需刷新
+                    // ★ 只有在這裡跳出最後的單一成功視窗
                     showCustomAlert("✅", "開戶成功", result.message, () => loadWalletManage());
                 } else {
                     showCustomAlert("❌", "新增失敗", result.message);
                 }
-            } catch (error) { showCustomAlert("❌", "連線錯誤", error.message); }
+            } catch (error) {
+                showCustomAlert("❌", "連線錯誤", error.message);
+            }
         }
-
         // 5. 刪除錢包
         function executeDeleteWallet(rowId, walletName) {
             showConfirmModal("刪除帳戶確認", `確定要註銷「${walletName}」嗎？相關的結餘歷史也會一併移除且無法復原喔！`, async () => {
