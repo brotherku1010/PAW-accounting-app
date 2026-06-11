@@ -877,12 +877,12 @@
         // 網頁載入時觸發的初始設定
         // ================= 系統開機主動載入引擎 =================
         window.addEventListener('load', async () => {
-            // 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
-            updateMonthDisplay();
-
-            // 2. 召喚雲端隨機恐龍
-            spawnRandomDino();
-
+            updateMonthDisplay();// 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
+            spawnRandomDino();// 2. 召喚雲端隨機恐龍
+            // 開機時自動套用上次記憶的標籤與眼睛狀態
+            if (currentHomeTab === 'category') document.getElementById('tab-home-cat').classList.add('active');
+            else document.getElementById('tab-home-wal').classList.add('active');
+            updatePrivacyEyeUI();
             // 3. 智慧防呆：一開網頁首頁大屏幕先顯示趣味載入中提示
             const contentArea = document.getElementById('home-screen-content');
             if (contentArea) {
@@ -961,8 +961,8 @@
         }
 
         // 全域變數：記錄主畫面看板狀態
-        let isAmountHidden = false;       // 是否隱藏金額 (true = 隱藏)
-        let currentHomeTab = "category";  // 當前顯示類別 ('category' 或 'wallet')
+        let isAmountHidden = localStorage.getItem('app_isAmountHidden') === 'true';
+        let currentHomeTab = localStorage.getItem('app_currentHomeTab') || 'category';
         // 💡 修復 1：確保網頁完全載入後，才去設定預設日期 (防呆機制)
         window.addEventListener('DOMContentLoaded', () => {
             const dateInput = document.getElementById('form-date');
@@ -2039,6 +2039,9 @@
         // 控制主畫面 Tab 切換
         function switchHomeTab(tabName) {
             currentHomeTab = tabName;
+            localStorage.setItem('app_currentHomeTab', tabName); // ★ 存入手機記憶
+
+            // 更新按鈕視覺
             document.getElementById('tab-home-cat').classList.remove('active');
             document.getElementById('tab-home-wal').classList.remove('active');
 
@@ -2048,17 +2051,26 @@
             refreshHomeScreenUI();
         }
 
+        // 2. 切換隱私遮蔽並記憶
         function toggleAmountVisibility() {
             isAmountHidden = !isAmountHidden;
+            localStorage.setItem('app_isAmountHidden', isAmountHidden); // ★ 存入手機記憶
+
+            updatePrivacyEyeUI(); // 更新眼睛圖示
+            refreshHomeScreenUI();
+        }
+
+        // 獨立出來的眼睛圖示更新函式 (方便開機時呼叫)
+        function updatePrivacyEyeUI() {
             const eyeBtn = document.getElementById('btn-privacy-eye');
+            if (!eyeBtn) return;
             if (isAmountHidden) {
                 eyeBtn.innerText = "visibility_off";
-                eyeBtn.style.color = "#ff7675";
+                eyeBtn.style.color = "#ff7675"; // 紅色
             } else {
                 eyeBtn.innerText = "visibility";
-                eyeBtn.style.color = "#d6a5ff";
+                eyeBtn.style.color = "#d6a5ff"; // 紫色
             }
-            refreshHomeScreenUI();
         }
 
         // 💡 看板動態渲染主引擎 (補上「我的錢包」真實雲端資料連動)
