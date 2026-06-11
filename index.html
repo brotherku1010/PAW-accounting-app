@@ -958,6 +958,7 @@
         ];
         // ================= 趣味載入語錄 (廢話 JSON 陣列) =================
         // ================= 趣味載入等待語錄庫 =================
+        // ================= 趣味載入等待語錄庫 =================
         const loadingQuotes = [
             // 原有廢話系列
             "在非洲，每六十秒，就有一分鐘過去...",
@@ -1028,8 +1029,48 @@
             "如果我做了皇帝，一定封你當太監。",
             "曾經滄海難為水，魚香肉絲配雞腿。"
         ];
-        // ================= 趣味載入等待與遮蔽語錄庫 =================
+        const maskedQuotes = [
+            "分開不是結束，而是讓真正適合的人有機會靠近你。",
+            "你的價值，不應該被一段感情所定義，你值得更好的愛。",
+            "有些人的出現是為了教會我們愛，而不是陪我們到最後。",
+            "別為錯的人流淚，真正愛你的人，會讓你笑得比哭多。",
+            "這一次的心碎，是為了讓你在未來更勇敢地愛。",
+            "愛過錯的人不是浪費，而是讓你更懂得珍惜對的人。",
+            "時間不會帶走傷痛，但會讓它變得輕盈。",
+            "你值得一段不需要追逐、不必懷疑的愛。",
+            "每一次失去，都是為了讓你找到真正屬於你的幸福。",
+            "當你學會愛自己，世界也會把最好的愛帶到你身邊。",
 
+            // ─── 幽默放閃系列 ───
+            "如果愛情是一場考試，那你是我唯一想作弊的理由!",
+            "我可以不吃糖，但不能沒有你，畢竟你甜過一切。",
+            "我們的關係就像手機電量，100%時甜蜜放閃，10%時需要抱抱充電！",
+            "我這麼懶的人，卻願意為你早起、等你回訊息，這不是真愛是什麼？",
+            "愛情就像薯條配番茄醬，沒有你，我就少了一味！",
+            "別人只讓我心跳加快，你卻讓我心跳漏拍，順便血壓升高。",
+            "我每天健身鍛鍊，結果還是逃不出你的手掌心！",
+            "和你在一起後，我的Google地圖失效了，因為全世界最美的風景就是你。",
+            "說好一起瘦的，結果你偷偷變可愛，我偷偷變胖。",
+            "談戀愛好累，但更累的是沒有你，因為會一直想你！",
+
+            // ─── 文青浪漫系列 ───
+            "你是清晨未醒的霧，也是黃昏未落的霞，在我的世界裡，時時刻刻閃著光。",
+            "愛是一首無字的詩，每次心跳，都是筆劃間的餘韻。",
+            "若世界荒蕪，我願化作風，穿越千山萬水，只為輕撫你的眉間。",
+            "你的名字，是我寫不膩的詩，念一遍，心動一遍。",
+            "若時間有重量，那你佔據的分秒，無疑是最沉的想念。",
+            "月光潑灑的夜晚，風輕輕翻閱我的心事，句句都是你的名字。",
+            "我願做你窗前的一縷微風，輕輕掠過你的髮梢，帶走一絲想念的芬芳。",
+            "我走過的山川湖海，都不足以形容你給我的心動。",
+            "愛是微光，在尋常日子裡閃爍，將平凡都染上溫柔的色彩。",
+            "若你是海，我願是那枚漂流的瓶，一生一世，只向你靠近。"
+        ];
+        // ================= 趣味載入等待與遮蔽語錄庫 =================
+        function getRandomNonsense() {
+            const randomIndex = Math.floor(Math.random() * loadingQuotes.length);
+            return loadingQuotes[randomIndex];
+        }
+        // ================= 載入等待與愛情語錄庫 =================
         function getRandomMaskedText() {
             const idx = Math.floor(Math.random() * maskedQuotes.length);
             return maskedQuotes[idx];
@@ -1108,10 +1149,6 @@
                 }
                 loadWalletManage();
             }
-        }
-        function getRandomNonsense() {
-            const randomIndex = Math.floor(Math.random() * loadingQuotes.length);
-            return loadingQuotes[randomIndex];
         }
 
         // 2. 月份切換與雲端同步邏輯
@@ -1997,7 +2034,7 @@
         // 1. 讀取雲端試算表資料
         async function loadChartData() {
             const loadingDiv = document.getElementById('chart-loading-msg');
-            loadingDiv.innerHTML = `⏳ ${getRandomNonsense()}`; // 套用您的幹話語錄機制
+            loadingDiv.innerHTML = `⏳ ${getRandomMaskedText()}`; // 套用您的幹話語錄機制
 
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
@@ -2008,7 +2045,7 @@
                 if (result.success && result.labels.length > 0) {
                     globalChartLabels = result.labels;
                     globalChartValues = result.values;
-                    loadingDiv.innerHTML = `${getRandomNonsense()}`;
+                    loadingDiv.innerHTML = `${getRandomMaskedText()}`;
 
                     // 渲染圖表
                     renderExpenseChart(currentChartType);
