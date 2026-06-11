@@ -1316,47 +1316,47 @@
         // 將組裝報表 HTML 的邏輯獨立出來
         function renderReportHTML(data, container) {
             let html = `
-            <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); padding: 18px; border-radius: 16px; margin-bottom: 25px; text-align:center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
-                <div style="font-size: 14px; color: #2ecc71; opacity: 0.9; margin-bottom: 5px; letter-spacing: 1px;">本月總收入</div>
-                <div style="font-size: 28px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[2]}</div>
-            </div>
-        `;
+                <div style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.4); padding: 18px; border-radius: 16px; margin-bottom: 25px; text-align:center; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);">
+                    <div style="font-size: 14px; color: #2ecc71; opacity: 0.9; margin-bottom: 5px; letter-spacing: 1px;">本月總收入</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #2ecc71; font-family: monospace;">$ ${data.totalIncome[2]}</div>
+                </div>
+            `;
 
             data.items.forEach(item => {
                 html += `
-            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
-                <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <span style="font-weight: bold; color: white; font-size: 18px; letter-spacing: 0.5px;">${item[0]}</span>
-                        <span style="font-size: 14px; color: var(--text-muted);">預算: <span style="color:#e0e0e0;">$${item[2]}</span></span>
+                <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 16px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div style="flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <span style="font-weight: bold; color: white; font-size: 18px; letter-spacing: 0.5px;">${item[0]}</span>
+                            <span style="font-size: 14px; color: var(--text-muted);">預算: <span style="color:#e0e0e0;">$${item[2]}</span></span>
+                        </div>
+                        <div style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                            <span>上月餘額: <span style="color: #9aa0a6;">$${item[4]}</span></span>
+                            <span>支出: <span style="color: #ff7675;">$${item[3]}</span></span>
+                        </div>
                     </div>
-                    <div style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-                        <span>上月餘額: <span style="color: #9aa0a6;">$${item[4]}</span></span>
-                        <span>支出: <span style="color: #ff7675;">$${item[3]}</span></span>
+                    <div style="text-align: right; min-width: 100px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
+                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
+                        <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
                     </div>
-                </div>
-                <div style="text-align: right; min-width: 100px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,0.08);">
-                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 3px; letter-spacing: 0.5px;">本月結餘</div>
-                    <div style="font-size: 20px; font-weight: bold; color: #d6a5ff; font-family: monospace;">$${item[5]}</div>
-                </div>
-            </div>`;
+                </div>`;
             });
 
             // 總結餘底部卡片 (升級版：主秀總餘額，左下角點綴總支出)
             html += `
-                    <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 20px 18px; border-radius: 16px; margin-top: 25px; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100px;">
-                        
-                        <div style="text-align: center; width: 100%;">
-                            <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
-                            <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
-                        </div>
+                        <div style="background: linear-gradient(135deg, rgba(159,53,255,0.3), rgba(89,28,158,0.5)); border: 1px solid rgba(214, 165, 255, 0.4); padding: 20px 18px; border-radius: 16px; margin-top: 25px; box-shadow: 0 8px 25px rgba(159, 53, 255, 0.2); position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100px;">
+                            
+                            <div style="text-align: center; width: 100%;">
+                                <div style="font-size:13px; color:#e0e0e0; opacity: 0.8; margin-bottom: 5px; letter-spacing: 1px;">總餘額</div>
+                                <div style="font-size:32px; font-weight:bold; color:white; font-family: monospace;">$ ${data.totalBalance[5]}</div>
+                            </div>
 
-                        <div style="position: absolute; bottom: 12px; left: 15px; text-align: left; opacity: 0.85;">
-                            <span style="font-size: 11px; color: #ff7675; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">總支出</span>
-                            <span style="font-size: 14px; font-weight: bold; color: #ff7675; font-family: monospace;">$${data.totalIncome[3]}</span>
+                            <div style="position: absolute; bottom: 12px; left: 15px; text-align: left; opacity: 0.85;">
+                                <span style="font-size: 11px; color: #ff7675; display: block; margin-bottom: 2px; letter-spacing: 0.5px;">總支出</span>
+                                <span style="font-size: 14px; font-weight: bold; color: #ff7675; font-family: monospace;">$${data.totalIncome[3]}</span>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
             container.innerHTML = html;
         }
 
@@ -1420,22 +1420,22 @@
 
             // ★ 加入「項目」與「比例(%)」的置中標題
             list.innerHTML = `
-            <div style="display:flex; gap:10px; margin-bottom:10px; padding: 0 5px; color: var(--text-muted); font-size: 14px; font-weight: bold; text-align: center;">
-                <div style="flex:2; text-align: left; padding-left: 5px;">項目</div>
-                <div style="flex:1;">比例(%)</div>
-                <div style="width: 34px;"></div> </div>
-        `;
+                <div style="display:flex; gap:10px; margin-bottom:10px; padding: 0 5px; color: var(--text-muted); font-size: 14px; font-weight: bold; text-align: center;">
+                    <div style="flex:2; text-align: left; padding-left: 5px;">項目</div>
+                    <div style="flex:1;">比例(%)</div>
+                    <div style="width: 34px;"></div> </div>
+            `;
 
             let totalRatio = 0;
             editingItems.forEach((item, idx) => {
                 totalRatio += Number(item.ratio);
                 list.innerHTML += `
-                <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
-                    <input type="text" placeholder="輸入名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
-                    <input type="number" placeholder="0" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
-                    <div style="color:#ff7675; font-size:24px; cursor:pointer; padding: 0 5px;" onclick="removeBudgetRow(${idx})">✖</div>
-                </div>
-            `;
+                    <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+                        <input type="text" placeholder="輸入名稱" value="${item.name}" onchange="editingItems[${idx}].name=this.value" style="flex:2; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white;">
+                        <input type="number" placeholder="0" value="${item.ratio}" onchange="editingItems[${idx}].ratio=this.value; renderBudgetRows();" style="flex:1; padding:10px; border-radius:8px; border:1px solid var(--card-border); background:rgba(0,0,0,0.3); color:white; text-align:center;">
+                        <div style="color:#ff7675; font-size:24px; cursor:pointer; padding: 0 5px;" onclick="removeBudgetRow(${idx})">✖</div>
+                    </div>
+                `;
             });
 
             // 100% 防呆檢查
@@ -1621,11 +1621,18 @@
                 // 發送 POST 請求，告訴後端我們要改 B2 並拿資料
                 const response = await fetch(API_URL, {
                     method: "POST",
+                    // ★ 修正 1：加上 text/plain 避免觸發嚴格的 CORS 預檢請求 (Preflight)
+                    headers: {
+                        "Content-Type": "text/plain;charset=utf-8",
+                    },
+                    // ★ 修正 2：GAS 執行後會進行 302 重新導向，必須告訴瀏覽器跟隨
+                    redirect: "follow",
                     body: JSON.stringify({
                         action: "getDetails",
                         filterType: filterType
                     })
                 });
+
                 const result = await response.json();
 
                 if (result.success) {
@@ -1634,7 +1641,9 @@
                     container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
                 }
             } catch (error) {
-                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路錯誤，請稍後再試。</div>`;
+                // ★ 修正 3：把真實的錯誤印在控制台，方便抓蟲！
+                console.error("【詳細錯誤資訊】:", error);
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 發生異常，請按 F12 查看控制台。<br>(${error.message})</div>`;
             }
         }
         // ================= 第三大項-支出報告圖，控制系統 =================
@@ -1885,27 +1894,27 @@
                 }
 
                 html += `
-            <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 18px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-size: 13px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px;">📅 ${date}</span>
-                        <span style="background: ${themeColor}15; border: 1px solid ${themeColor}40; color: ${themeColor}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${type}</span>
+                <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 18px 15px; border-radius: 18px; margin-bottom: 15px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 13px; color: var(--text-muted); font-family: monospace; letter-spacing: 0.5px;">📅 ${date}</span>
+                            <span style="background: ${themeColor}15; border: 1px solid ${themeColor}40; color: ${themeColor}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: bold;">${type}</span>
+                        </div>
+                        <div onclick="executeDeleteRecord('${id}')" style="display: ${isRawDataEditMode ? 'flex' : 'none'}; width: 34px; height: 34px; background: rgba(255, 118, 117, 0.15); border-radius: 8px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
+                            <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                        </div>
                     </div>
-                    <div onclick="executeDeleteRecord('${id}')" style="display: ${isRawDataEditMode ? 'flex' : 'none'}; width: 34px; height: 34px; background: rgba(255, 118, 117, 0.15); border-radius: 8px; justify-content: center; align-items: center; color: #ff7675; cursor: pointer; border: 1px solid rgba(255, 118, 117, 0.3);">
-                        <span class="material-symbols-outlined" style="font-size:18px;">delete</span>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px;">
+                        ${bodyFieldsHtml}
                     </div>
-                </div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px;">
-                    ${bodyFieldsHtml}
-                </div>
 
-                ${hasValue(note) ? `
-                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.05); font-size: 16px; color: #e2e8f0; display: flex; gap: 6px; align-items: flex-start;">
-                    <span style="color: var(--text-muted); shrink: 0; font-size: 13px; margin-top: 3px;">📝 備註:</span>
-                    <span style="word-break: break-all; line-height: 1.4; font-weight: bold; color: #ffffff;">${note}</span>
-                </div>` : ''}
-            </div>`;
+                    ${hasValue(note) ? `
+                    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.05); font-size: 16px; color: #e2e8f0; display: flex; gap: 6px; align-items: flex-start;">
+                        <span style="color: var(--text-muted); shrink: 0; font-size: 13px; margin-top: 3px;">📝 備註:</span>
+                        <span style="word-break: break-all; line-height: 1.4; font-weight: bold; color: #ffffff;">${note}</span>
+                    </div>` : ''}
+                </div>`;
             });
 
             container.innerHTML = html;
@@ -1913,10 +1922,10 @@
             // 渲染分頁按鈕
             if (paginationContainer) {
                 paginationContainer.innerHTML = `
-                <button onclick="changeRawDataPage(-1)" ${currentRawDataPage === 1 ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">❮ 上一頁</button>
-                <span style="color: var(--text-muted); font-size: 14px; font-weight: bold; font-family: monospace; letter-spacing: 0.5px;">第 ${currentRawDataPage} / ${totalPages} 頁</span>
-                <button onclick="changeRawDataPage(1)" ${currentRawDataPage === totalPages ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">下一頁 ❯</button>
-            `;
+                    <button onclick="changeRawDataPage(-1)" ${currentRawDataPage === 1 ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">❮ 上一頁</button>
+                    <span style="color: var(--text-muted); font-size: 14px; font-weight: bold; font-family: monospace; letter-spacing: 0.5px;">第 ${currentRawDataPage} / ${totalPages} 頁</span>
+                    <button onclick="changeRawDataPage(1)" ${currentRawDataPage === totalPages ? 'disabled style="opacity:0.25; cursor:not-allowed;"' : ''} style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); color: white; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: background 0.2s;">下一頁 ❯</button>
+                `;
             }
         }
 
@@ -2012,9 +2021,9 @@
             // 遮蔽隱私模式：顯示幹話
             if (isAmountHidden) {
                 contentArea.innerHTML = `
-                <div style="text-align: center; font-size: 16px; font-weight: bold; color: #ff7675; font-style: italic; padding: 30px 10px; line-height:1.5;">
-                    🤫 [已開啟隱私防護]<br><span style="color:white; font-size:14px; font-weight:normal; display:inline-block; margin-top:10px;">"${getRandomMaskedText()}"</span>
-                </div>`;
+                    <div style="text-align: center; font-size: 16px; font-weight: bold; color: #ff7675; font-style: italic; padding: 30px 10px; line-height:1.5;">
+                        🤫 [已開啟隱私防護]<br><span style="color:white; font-size:14px; font-weight:normal; display:inline-block; margin-top:10px;">"${getRandomMaskedText()}"</span>
+                    </div>`;
                 return;
             }
 
@@ -2029,18 +2038,18 @@
             // 頁籤 1：項目分類
             if (currentHomeTab === 'category') {
                 html += `
-                <div style="text-align: center; margin-bottom: 12px;">
-                    <span style="font-size:12px; color:rgba(255,255,255,0.6);">本月總資產結餘</span>
-                    <div style="font-size:26px; font-weight:bold; color:white; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-            `;
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <span style="font-size:12px; color:rgba(255,255,255,0.6);">本月總資產結餘</span>
+                        <div style="font-size:26px; font-weight:bold; color:white; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                `;
                 cachedReportData.items.forEach(item => {
                     html += `
-                    <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
-                        <span style="color:var(--text-muted);">${item[0]}</span>
-                        <span style="font-weight:bold; font-family:monospace; color:#d6a5ff;">$${item[5]}</span>
-                    </div>`;
+                        <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
+                            <span style="color:var(--text-muted);">${item[0]}</span>
+                            <span style="font-weight:bold; font-family:monospace; color:#d6a5ff;">$${item[5]}</span>
+                        </div>`;
                 });
                 html += `</div>`;
             }
@@ -2048,20 +2057,20 @@
             // 頁籤 2：💡 錢包帳目 (完全移除寫死數據，真實連動「我的錢包」工作表)
             else if (currentHomeTab === 'wallet') {
                 html += `
-                <div style="text-align: center; margin-bottom: 12px;">
-                    <span style="font-size:12px; color:rgba(255,255,255,0.6);">實體資產總計</span>
-                    <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
-            `;
+                    <div style="text-align: center; margin-bottom: 12px;">
+                        <span style="font-size:12px; color:rgba(255,255,255,0.6);">實體資產總計</span>
+                        <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                `;
 
                 if (cachedReportData.wallets && cachedReportData.wallets.length > 0) {
                     cachedReportData.wallets.forEach(w => {
                         html += `
-                        <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
-                            <span style="color:var(--text-muted);">${w.name}</span>
-                            <span style="font-weight:bold; font-family:monospace; color:white;">$${w.balance}</span>
-                        </div>`;
+                            <div style="background: rgba(0,0,0,0.2); padding: 8px 12px; border-radius: 10px; display:flex; justify-content:space-between; border: 1px solid rgba(255,255,255,0.02);">
+                                <span style="color:var(--text-muted);">${w.name}</span>
+                                <span style="font-weight:bold; font-family:monospace; color:white;">$${w.balance}</span>
+                            </div>`;
                     });
                 } else {
                     html += `<div style="grid-column: span 2; text-align:center; color:var(--text-muted);">工作表 '我的錢包' 內無有效資產資料</div>`;
