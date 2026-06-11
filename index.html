@@ -658,7 +658,7 @@
                     <label>交易類型</label>
                     <div class="toggle-group">
                         <div class="toggle-btn active" id="btn-general" onclick="setTransactionType('一般收支')">一般收支</div>
-                        <div class="toggle-btn" id="btn-transfer" onclick="setTransactionType('帳戶戶轉')">帳戶戶轉</div>
+                        <div class="toggle-btn" id="btn-transfer" onclick="setTransactionType('帳戶互轉')">帳戶互轉</div>
                     </div>
                     <input type="hidden" id="form-transactionType" value="一般收支">
                 </div>
@@ -1096,7 +1096,7 @@
             const groupGeneral = document.getElementById('group-general');
             const groupTransfer = document.getElementById('group-transfer');
 
-            if (transType === '帳戶戶轉') {
+            if (transType === '帳戶互轉') {
                 groupGeneral.style.display = 'none';
                 groupTransfer.style.display = 'block';
             } else {
@@ -1137,7 +1137,7 @@
             payload.transactionType = document.getElementById('form-transactionType').value;
 
             // 檢查防呆邏輯並打包對應資料
-            if (payload.transactionType === '帳戶戶轉') {
+            if (payload.transactionType === '帳戶互轉') {
                 payload.transferOut = document.getElementById('form-transferOut').value;
                 payload.transferIn = document.getElementById('form-transferIn').value;
                 payload.transferAmount = document.getElementById('form-transferAmount').value;
