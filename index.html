@@ -1078,7 +1078,7 @@
         // ================= 系統開機主動載入引擎 =================
         window.addEventListener('load', async () => {
             updateMonthDisplay();// 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
-            spawnRandomDino();// 2. 召喚雲端隨機恐龍
+            spawnRandomPic();// 2. 召喚雲端隨機恐龍
             // 開機時自動套用上次記憶的標籤與眼睛狀態
             if (currentHomeTab === 'category') document.getElementById('tab-home-cat').classList.add('active');
             else document.getElementById('tab-home-wal').classList.add('active');
@@ -1535,9 +1535,8 @@
             // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
             updateFormVisibility();
         }
-        // ================= 恐龍生成系統 (雲端動態版) =================
-        async function spawnRandomDino() {
-            // ★ 確保這裡的網址是您最新的 GAS API 網址
+        // ================= 底圖生成系統 (雲端動態版) =================
+        async function spawnRandomPic() {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
@@ -1545,28 +1544,31 @@
                 const response = await fetch(API_URL + "?action=getImages");
                 const result = await response.json();
 
-                // 如果成功拿到圖片陣列，且資料夾不是空的
                 if (result.success && result.images.length > 0) {
                     const container = document.querySelector('.app-container');
 
-                    // 💡 核心修正：用 forEach 迴圈，把後端傳來的 2 張圖都畫出來！
                     result.images.forEach((imgUrl, index) => {
                         const dinoImg = document.createElement('img');
                         dinoImg.src = imgUrl;
                         dinoImg.className = 'dino-mascot';
 
-                        // 隨機決定每張圖的大小 (200px ~ 320px 之間)
-                        dinoImg.style.width = Math.floor(Math.random() * 120 + 200) + 'px';
+                        // 💡 為了容納 3 張圖，將隨機大小微調得稍微精緻一點 (150px ~ 250px 之間)
+                        dinoImg.style.width = Math.floor(Math.random() * 100 + 150) + 'px';
 
-                        // 隨機決定高度 (為了避免兩張重疊在一起，給予一點隨機錯落感)
-                        dinoImg.style.bottom = Math.floor(Math.random() * 25 + 5) + '%';
-
-                        // 💡 智慧排版：第 1 張 (index 0) 固定放左邊，第 2 張 (index 1) 固定放右邊
-                        if (index % 2 === 0) {
-                            dinoImg.style.left = '-30px';
+                        // 💡 智慧排版：根據 index (0, 1, 2) 分配到 上、中、下，並採取「左右交錯」
+                        if (index === 0) {
+                            // 【第 1 張：上方靠左】
+                            dinoImg.style.top = Math.floor(Math.random() * 10 + 5) + '%'; // 距離頂部 5%~15%
+                            dinoImg.style.left = '-20px';
+                        } else if (index === 1) {
+                            // 【第 2 張：中間靠右】
+                            dinoImg.style.top = Math.floor(Math.random() * 15 + 40) + '%'; // 距離頂部 40%~55%
+                            dinoImg.style.right = '-20px';
+                            dinoImg.style.transform = 'scaleX(-1)'; // 面向左邊，與上下兩張對望
                         } else {
-                            dinoImg.style.right = '-30px';
-                            dinoImg.style.transform = 'scaleX(-1)'; // 讓右邊的圖面向左邊
+                            // 【第 3 張：下方靠左】
+                            dinoImg.style.bottom = Math.floor(Math.random() * 10 + 5) + '%'; // 距離底部 5%~15%
+                            dinoImg.style.left = '-10px';
                         }
 
                         // 將圖片加入畫面上
@@ -1576,8 +1578,7 @@
             } catch (error) {
                 console.log("無法召喚插圖：", error);
             }
-        }
-        // 1. 開關編輯模式
+        }        // 1. 開關編輯模式
         function toggleWalletEditMode() {
             isWalletEditMode = !isWalletEditMode;
             const editBtn = document.getElementById('btn-toggle-wallet-edit');
