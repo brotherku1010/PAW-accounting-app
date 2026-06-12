@@ -655,11 +655,8 @@
 </head>
 
 <body>
-
-    <div class="app-container">
-
+    <div class="app-container" style="position: relative; overflow: hidden; min-height: 100vh;">
         <div id="page-home" class="page active">
-
             <div class="month-selector">
                 <button onclick="changeMonth(-1)">❮</button>
                 <span id="current-month-display">2026年 06月</span>
@@ -709,8 +706,6 @@
                 </div>
             </div>
         </div>
-
-
         <div id="page-add" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
@@ -822,7 +817,6 @@
                 <button id="btn-submit" class="submit-btn" onclick="submitRecord()">花錢咯~</button>
             </div>
         </div>
-
         <div id="page-report" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
@@ -834,7 +828,6 @@
                 <div class="placeholder-box">資料讀取中...</div>
             </div>
         </div>
-
         <div id="page-budget-edit" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-report')">❮</div>
@@ -856,7 +849,6 @@
                 <button id="btn-save-budget" class="submit-btn" onclick="saveBudgetSettings()">💾 儲存並寫入公式</button>
             </div>
         </div>
-
         <div id="page-details" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
@@ -873,7 +865,6 @@
                 <div class="placeholder-box">等待載入資料...</div>
             </div>
         </div>
-
         <div id="page-chart" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
@@ -896,7 +887,6 @@
                     style="text-align: center; color: var(--text-muted); font-size: 14px; margin-top: 15px;"></div>
             </div>
         </div>
-
         <div id="page-raw-data" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
@@ -916,14 +906,11 @@
                 style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding: 10px 5px; border-top: 1px solid rgba(255,255,255,0.05);">
             </div>
         </div>
-
         <div id="toast-msg"
             style="position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(159,53,255,0.9); color: white; padding: 10px 20px; border-radius: 20px; z-index: 9999; font-size: 14px; box-shadow: 0 4px 15px var(--primary-glow); opacity: 0; transition: opacity 0.3s ease; pointer-events: none;">
             已切換字體
         </div>
-
         <div class="fab" onclick="switchPage('page-add')">＋</div>
-
         <div id="settings-menu" class="fab-settings-wrapper">
             <div class="radial-menu">
                 <div class="radial-item item-1" onclick="openFontModal(); closeSettingsMenu();" title="語言/字體切換">
@@ -942,7 +929,6 @@
                 <span class="material-symbols-outlined">settings</span>
             </div>
         </div>
-
         <div id="page-wallet-manage" class="page">
             <div class="page-header">
                 <div class="back-btn" onclick="switchPage('page-home')">❮</div>
@@ -1069,7 +1055,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -1544,19 +1529,20 @@
                 const response = await fetch(API_URL + "?action=getImages");
                 const result = await response.json();
 
-                // 💡 增加防呆檢查：result 存在且有 images 屬性
-                if (result && result.success && result.images && Array.isArray(result.images)) {
-                    // 先清理舊圖，避免重疊與空節點問題
-                    document.querySelectorAll('.random-pic').forEach(el => el.remove());
+                if (result.success && result.images.length > 0) {
+                    // ★ 再次確保抓到唯一的 app-container
+                    const container = document.querySelector('.app-container');
+                    if (!container) {
+                        console.error("錯誤：找不到 .app-container，請檢查 HTML 結構！");
+                        return;
+                    }
 
                     result.images.forEach((imgUrl, index) => {
                         renderSinglePic(imgUrl, index);
                     });
-                } else {
-                    console.warn("圖片讀取成功，但沒有圖片資料或結構錯誤：", result);
                 }
             } catch (error) {
-                console.error("無法召喚插圖：", error);
+                console.log("無法召喚插圖：", error);
             }
         }
         // 負責產生單張圖片並添加到畫面的小函式
