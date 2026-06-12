@@ -1546,42 +1546,40 @@
 
                 if (result.success && result.images.length > 0) {
                     const container = document.querySelector('.app-container');
-
-                    // ★ 核心新增：判斷目前是不是手機螢幕 (寬度小於 768px)
                     const isMobile = window.innerWidth < 768;
 
                     result.images.forEach((imgUrl, index) => {
-                        const dinoImg = document.createElement('img');
-                        dinoImg.src = imgUrl;
-                        dinoImg.className = 'dino-mascot';
+                        const picImg = document.createElement('img');
+                        picImg.src = imgUrl;
+                        picImg.className = 'random-pic'; // 已替換為您修改的新 class
 
-                        // ★ 額外優化：讓圖片「點擊穿透」，避免蓋住按鈕導致使用者點不到介面
-                        dinoImg.style.pointerEvents = 'none';
+                        // 讓圖片「點擊穿透」，不干擾使用者操作介面
+                        picImg.style.pointerEvents = 'none';
 
-                        // 💡 智慧縮放：手機版縮小(100~140px)，電腦版維持原大小(150~250px)
+                        // 💡 放大尺寸：手機版大幅提昇到 160~220px，電腦版 200~280px
                         const baseSize = isMobile
-                            ? Math.floor(Math.random() * 40 + 100)
-                            : Math.floor(Math.random() * 100 + 150);
-                        dinoImg.style.width = baseSize + 'px';
+                            ? Math.floor(Math.random() * 60 + 160)
+                            : Math.floor(Math.random() * 80 + 200);
+                        picImg.style.width = baseSize + 'px';
 
-                        // 💡 智慧排版：手機版推向極限邊緣防重疊，電腦版維持隨機錯落感
+                        // 💡 緊湊排版：將高度往中間聚攏，填補空洞，允許稍微的視覺重疊
                         if (index === 0) {
                             // 【第 1 張：上方靠左】
-                            dinoImg.style.top = isMobile ? '2%' : Math.floor(Math.random() * 10 + 5) + '%';
-                            dinoImg.style.left = '-20px';
+                            picImg.style.top = isMobile ? '8%' : '10%'; // 從極限的 2% 降到 8%
+                            picImg.style.left = '-15px';
                         } else if (index === 1) {
                             // 【第 2 張：中間靠右】
-                            dinoImg.style.top = isMobile ? '40%' : Math.floor(Math.random() * 10 + 40) + '%';
-                            dinoImg.style.right = '-20px';
-                            dinoImg.style.transform = 'scaleX(-1)'; // 面向左邊
+                            picImg.style.top = isMobile ? '38%' : '40%'; // 穩穩佔據中上段
+                            picImg.style.right = '-15px';
+                            picImg.style.transform = 'scaleX(-1)'; // 面向左邊
                         } else {
                             // 【第 3 張：下方靠左】
-                            dinoImg.style.bottom = isMobile ? '2%' : Math.floor(Math.random() * 10 + 5) + '%';
-                            dinoImg.style.left = '-10px';
+                            picImg.style.bottom = isMobile ? '8%' : '10%'; // 從極限的 2% 升到 8%
+                            picImg.style.left = '-10px';
                         }
 
                         // 將圖片加入畫面上
-                        container.appendChild(dinoImg);
+                        container.appendChild(picImg);
                     });
                 }
             } catch (error) {
