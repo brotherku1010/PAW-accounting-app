@@ -1079,7 +1079,7 @@
         // ================= 系統開機主動載入引擎 =================
         window.addEventListener('load', async () => {
             updateMonthDisplay();// 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
-            spawnRandomPic();// 2. 召喚雲端隨機恐龍
+            spawnRandomPic();// 2. 召喚雲端隨機圖片
             // 開機時自動套用上次記憶的標籤與眼睛狀態
             if (currentHomeTab === 'category') document.getElementById('tab-home-cat').classList.add('active');
             else document.getElementById('tab-home-wal').classList.add('active');
@@ -1541,51 +1541,46 @@
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
-                // 向 GAS 請求圖片清單
                 const response = await fetch(API_URL + "?action=getImages");
                 const result = await response.json();
 
                 if (result.success && result.images.length > 0) {
-                    const container = document.querySelector('.app-container');
-                    const isMobile = window.innerWidth < 768;
-
-                    result.images.forEach((imgUrl, index) => {
-                        const picImg = document.createElement('img');
-                        picImg.src = imgUrl;
-                        picImg.className = 'random-pic'; // 已替換為您修改的新 class
-
-                        // 讓圖片「點擊穿透」，不干擾使用者操作介面
-                        picImg.style.pointerEvents = 'none';
-
-                        // 💡 放大尺寸：手機版大幅提昇到 160~220px，電腦版 200~280px
-                        const baseSize = isMobile
-                            ? Math.floor(Math.random() * 60 + 160)
-                            : Math.floor(Math.random() * 80 + 200);
-                        picImg.style.width = baseSize + 'px';
-
-                        // 💡 緊湊排版：將高度往中間聚攏，填補空洞，允許稍微的視覺重疊
-                        if (index === 0) {
-                            // 【第 1 張：上方靠左】
-                            picImg.style.top = isMobile ? '8%' : '10%'; // 從極限的 2% 降到 8%
-                            picImg.style.left = '-15px';
-                        } else if (index === 1) {
-                            // 【第 2 張：中間靠右】
-                            picImg.style.top = isMobile ? '38%' : '40%'; // 穩穩佔據中上段
-                            picImg.style.right = '-15px';
-                            picImg.style.transform = 'scaleX(-1)'; // 面向左邊
-                        } else {
-                            // 【第 3 張：下方靠左】
-                            picImg.style.bottom = isMobile ? '8%' : '10%'; // 從極限的 2% 升到 8%
-                            picImg.style.left = '-10px';
-                        }
-
-                        // 將圖片加入畫面上
-                        container.appendChild(picImg);
-                    });
+                    result.images.forEach((url, index) => renderSinglePic(url, index));
                 }
             } catch (error) {
                 console.log("無法召喚插圖：", error);
             }
+        }
+        // 負責產生單張圖片並添加到畫面的小函式
+        function renderSinglePic(imgUrl, index) {
+            const container = document.querySelector('.app-container');
+            const isMobile = window.innerWidth < 768;
+
+            const picImg = document.createElement('img');
+            picImg.src = imgUrl;
+            picImg.className = 'random-pic';
+            picImg.style.pointerEvents = 'none';
+
+            // 尺寸設定
+            const baseSize = isMobile
+                ? Math.floor(Math.random() * 60 + 160)
+                : Math.floor(Math.random() * 80 + 200);
+            picImg.style.width = baseSize + 'px';
+
+            // 排版邏輯 (上、中、下)
+            if (index === 0) {
+                picImg.style.top = isMobile ? '8%' : '10%';
+                picImg.style.left = '-15px';
+            } else if (index === 1) {
+                picImg.style.top = isMobile ? '38%' : '40%';
+                picImg.style.right = '-15px';
+                picImg.style.transform = 'scaleX(-1)';
+            } else {
+                picImg.style.bottom = isMobile ? '8%' : '10%';
+                picImg.style.left = '-10px';
+            }
+
+            container.appendChild(picImg);
         }
         // 1. 開關編輯模式
         function toggleWalletEditMode() {
@@ -1983,12 +1978,71 @@
             );
         }
         // 預留的「切換底圖」功能入口
-        function triggerChangeBackground() {
-            showCustomAlert("🖼️", "功能建置中", "切換底圖功能即將推出，敬請期待！");
+        // 1. 觸發選單：取得所有子資料夾 (分類)
+        async function triggerChangeBackground() {
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            showCustomAlert("⏳", "讀取中", "正在掃描雲端分類...");
+
+            try {
+                const response = await fetch(API_URL + "?action=getAlbumList");
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('album-list-container');
+                    container.innerHTML = ''; // 清空舊內容
+
+                    result.albums.forEach(album => {
+                        const btn = document.createElement('button');
+                        btn.innerText = album.name;
+                        btn.style.padding = '12px';
+                        btn.style.borderRadius = '10px';
+                        btn.style.border = 'none';
+                        btn.style.background = 'rgba(255,255,255,0.1)';
+                        btn.style.color = 'white';
+                        btn.style.cursor = 'pointer';
+                        btn.onclick = () => {
+                            loadBackgroundByFolder(album.id);
+                            document.getElementById('bg-selection-modal').style.display = 'none';
+                        };
+                        container.appendChild(btn);
+                    });
+
+                    // 隱藏 alert 並顯示選單
+                    document.getElementById('custom-alert').style.display = 'none';
+                    document.getElementById('bg-selection-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                showCustomAlert("❌", "讀取失敗", e.message);
+            }
         }
+
+        // 2. 執行切換：根據選定的 ID 讀取照片並更換
+        async function loadBackgroundByFolder(folderId) {
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            showCustomAlert("⏳", "更新中", "正在更換底圖...");
+
+            try {
+                const response = await fetch(`${API_URL}?action=getImagesByFolder&folderId=${folderId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    // 1. 清除舊圖
+                    document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
+
+                    // 2. 直接使用我們剛拆出來的小函式進行渲染
+                    result.images.forEach((url, index) => renderSinglePic(url, index));
+
+                    showCustomAlert("✅", "更換成功", "底圖已更新！");
+                }
+            }
+            } catch (e) {
+            showCustomAlert("❌", "更換失敗", e.message);
+        }
+
+
         // ================= 第一大項-收支報表，控制系統 =================
-
-
         // 1. 讀取並渲染報表 (帶有快取機制版)
         async function loadReport() {
             const container = document.getElementById('report-container');
@@ -3041,6 +3095,17 @@
             </div>
             <button onclick="closeFontModal()"
                 style="margin-top:20px; padding:10px 20px; background:rgba(255,255,255,0.2); border:none; border-radius:10px; color:white; cursor:pointer;">關閉</button>
+        </div>
+    </div>
+    <div id="bg-selection-modal" class="custom-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+        <div
+            style="background:#2c3e50; padding:20px; border-radius:20px; width:80%; max-width:300px; color:white; text-align:center;">
+            <h3 style="margin-top:0;">選擇底圖分類</h3>
+            <div id="album-list-container" style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+            </div>
+            <button onclick="document.getElementById('bg-selection-modal').style.display='none'"
+                style="margin-top:20px; padding:10px 20px; background:rgba(255,255,255,0.2); border:none; border-radius:10px; color:white; cursor:pointer;">取消</button>
         </div>
     </div>
 </body>
