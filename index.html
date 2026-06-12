@@ -1006,9 +1006,15 @@
                 </label>
             </div>
 
-            <h3 style="margin-bottom:12px; color:#d6a5ff; font-size:16px; display:flex; align-items:center; gap:6px;">
-                <span class="material-symbols-outlined" style="font-size:20px;">format_list_bulleted</span> 目前設定的提醒
-            </h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin:0; color:#d6a5ff; font-size:16px; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-outlined" style="font-size:20px;">format_list_bulleted</span> 目前設定的提醒
+                </h3>
+                <span id="btn-toggle-delete" onclick="toggleDeleteMode()"
+                    style="color: var(--text-muted); font-size: 13px; cursor: pointer; padding: 5px 12px; border-radius: 8px; background: rgba(255,255,255,0.1); transition: 0.2s;">
+                    編輯
+                </span>
+            </div>
             <div id="remind-list-container" style="margin-bottom: 25px; min-height: 80px;">
                 <div class="placeholder-box">⏳ 讀取資料中...</div>
             </div>
@@ -1818,20 +1824,31 @@
         }
 
         // 3. 讀取並渲染提醒清單
+        // 全域變數：紀錄目前是否為「刪除模式」
+        let isDeleteMode = false;
+
         async function loadRemindList() {
             const container = document.getElementById('remind-list-container');
-            container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomMaskedText()}</div>`;
+            container.innerHTML = `<div class="placeholder-box">⏳ 讀取排程中...</div>`;
+
+            // 每次重新讀取時，將編輯按鈕重置回預設狀態
+            isDeleteMode = false;
+            const toggleBtn = document.getElementById('btn-toggle-delete');
+            if (toggleBtn) {
+                toggleBtn.innerText = "編輯";
+                toggleBtn.style.background = "rgba(255,255,255,0.1)";
+                toggleBtn.style.color = "var(--text-muted)";
+            }
+
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
-                // ★ 關鍵修正：加上 &t=... 時間戳記，打破瀏覽器快取，確保每次都抓最新資料
                 const fetchUrl = `${API_URL}?action=getReminds&t=${new Date().getTime()}`;
                 const response = await fetch(fetchUrl);
                 const result = await response.json();
 
                 if (result.success) {
                     if (result.data.length === 0) {
-                        // ★ 文字微調：顯示為「尚無提醒事項」
                         container.innerHTML = `<div class="placeholder-box" style="color: var(--text-muted);">尚無提醒事項。</div>`;
                         return;
                     }
@@ -1847,11 +1864,13 @@
                                     期限: ${dateText} | 金額: $${item.amount}
                                 </span>
                             </div>
+                            <button class="btn-delete-remind" onclick="executeDeleteRemind(${item.row}, '${item.name}')" style="display: none; background: rgba(231, 76, 60, 0.15); color: #ff7675; border: 1px solid rgba(231, 76, 60, 0.4); padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;">
+                                <span class="material-symbols-outlined" style="font-size: 20px;">delete</span>
+                            </button>
                         </div>`;
                     });
                     container.innerHTML = html;
                 } else {
-                    // ★ 順便把後端的錯誤訊息印出來，如果還是失敗，我們能馬上知道原因
                     container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message || '格式異常'}</div>`;
                 }
             } catch (e) {
@@ -1900,6 +1919,54 @@
             } catch (e) {
                 alertButtons.forEach(btn => btn.style.display = '');
                 showCustomAlert("❌", "錯誤", e.message);
+            }
+        }
+        // 切換編輯/完成模式 (顯示或隱藏刪除按鈕)
+        function toggleDeleteMode() {
+            isDeleteMode = !isDeleteMode;
+            const btn = document.getElementById('btn-toggle-delete');
+            btn.innerText = isDeleteMode ? "完成" : "編輯";
+            btn.style.background = isDeleteMode ? "rgba(231, 76, 60, 0.2)" : "rgba(255,255,255,0.1)";
+            btn.style.color = isDeleteMode ? "#ff7675" : "var(--text-muted)";
+
+            const deleteBtns = document.querySelectorAll('.btn-delete-remind');
+            deleteBtns.forEach(b => {
+                b.style.display = isDeleteMode ? "block" : "none";
+            });
+        }
+
+        // 執行刪除提醒項目
+        async function executeDeleteRemind(rowIdx, name) {
+            // 原生防呆確認視窗
+            if (!confirm(`⚠️ 確定要刪除「${name}」這筆提醒嗎？\n(刪除後將不再發送推播通知)`)) {
+                return;
+            }
+
+            showCustomAlert("⏳", "處理中", "正在將資料從雲端移除...");
+            const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
+            alertButtons.forEach(btn => btn.style.display = 'none');
+
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: "deleteRemind", row: rowIdx })
+                });
+                const result = await response.json();
+
+                alertButtons.forEach(btn => btn.style.display = '');
+
+                if (result.success) {
+                    showCustomAlert("✅", "刪除成功", "該筆提醒已徹底移除！");
+                    loadRemindList(); // 刪除成功後重新讀取最新清單
+                } else {
+                    showCustomAlert("❌", "刪除失敗", result.message);
+                }
+            } catch (e) {
+                alertButtons.forEach(btn => btn.style.display = '');
+                showCustomAlert("❌", "連線錯誤", e.message);
             }
         }
         // ================= 第一大項-收支報表，控制系統 =================
