@@ -14,16 +14,17 @@
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(function (OneSignal) {
             OneSignal.init({
-                appId: "63edf55e-d6fa-4954-a990-e83ff5675d51", // 您的 App ID
-                safari_web_id: "",
+                appId: "63edf55e-d6fa-4954-a990-e83ff5675d51",
                 notifyButton: {
-                    enable: false, // 💡 把它改成 false，徹底隱藏預設鈴鐺
+                    enable: false,
                 },
+                // ★ 核心修復：指引 OneSignal 前往正確的子資料夾尋找檔案與設定權限範圍
+                serviceWorkerPath: "/PAW-accounting-app/OneSignalSDKWorker.js",
+                serviceWorkerParam: { scope: "/PAW-accounting-app/" }
             });
         });
     </script>
@@ -1018,7 +1019,9 @@
     </div>
 
     <script>
-        // 網頁載入時觸發的初始設定
+        // 全域快取變數
+        let cachedReportData = null;
+        let isReportDataDirty = true; // 標記是否需要重新讀取 (true = 需要)
         // ================= 系統開機主動載入引擎 =================
         window.addEventListener('load', async () => {
             updateMonthDisplay();// 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
@@ -1795,9 +1798,7 @@
             }
         }
         // ================= 第一大項-收支報表，控制系統 =================
-        // 全域快取變數
-        let cachedReportData = null;
-        let isReportDataDirty = true; // 標記是否需要重新讀取 (true = 需要)
+
 
         // 1. 讀取並渲染報表 (帶有快取機制版)
         async function loadReport() {
