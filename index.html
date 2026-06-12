@@ -1935,39 +1935,48 @@
             });
         }
 
-        // 執行刪除提醒項目
-        async function executeDeleteRemind(rowIdx, name) {
-            // 原生防呆確認視窗
-            if (!confirm(`⚠️ 確定要刪除「${name}」這筆提醒嗎？\n(刪除後將不再發送推播通知)`)) {
-                return;
-            }
+        // 執行刪除提醒項目 (套用客製化 Confirm 彈窗)
+        function executeDeleteRemind(rowIdx, name) {
+            // 呼叫您的客製化確認視窗
+            showConfirmModal(
+                "確認刪除",
+                `確定要刪除「${name}」這筆提醒嗎？\n刪除後就都沒了喔！都沒了ㄛ`,
+                async () => {
+                    // ====== 以下是使用者按下「確認」後執行的非同步區塊 ======
 
-            showCustomAlert("⏳", "處理中", "正在將資料從雲端移除...");
-            const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
-            alertButtons.forEach(btn => btn.style.display = 'none');
+                    showCustomAlert("⏳", "處理中", "正在將資料從雲端徹底移除...");
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                    // 隱藏按鈕防呆
+                    const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
+                    alertButtons.forEach(btn => btn.style.display = 'none');
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    body: JSON.stringify({ action: "deleteRemind", row: rowIdx })
-                });
-                const result = await response.json();
+                    const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
-                alertButtons.forEach(btn => btn.style.display = '');
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: "POST",
+                            headers: { "Content-Type": "text/plain;charset=utf-8" },
+                            body: JSON.stringify({ action: "deleteRemind", row: rowIdx })
+                        });
+                        const result = await response.json();
 
-                if (result.success) {
-                    showCustomAlert("✅", "刪除成功", "該筆提醒已徹底移除！");
-                    loadRemindList(); // 刪除成功後重新讀取最新清單
-                } else {
-                    showCustomAlert("❌", "刪除失敗", result.message);
+                        // 恢復按鈕顯示
+                        alertButtons.forEach(btn => btn.style.display = '');
+
+                        if (result.success) {
+                            // 刪除成功後，利用 callback 在使用者按下 OK 後重新讀取清單
+                            showCustomAlert("✅", "刪除成功", "確定沒有刪錯齁！錯了已經來不及了", () => {
+                                loadRemindList();
+                            });
+                        } else {
+                            showCustomAlert("❌", "刪除失敗", result.message);
+                        }
+                    } catch (e) {
+                        alertButtons.forEach(btn => btn.style.display = '');
+                        showCustomAlert("❌", "連線錯誤", e.message);
+                    }
                 }
-            } catch (e) {
-                alertButtons.forEach(btn => btn.style.display = '');
-                showCustomAlert("❌", "連線錯誤", e.message);
-            }
+            );
         }
         // ================= 第一大項-收支報表，控制系統 =================
 
