@@ -1982,13 +1982,16 @@
         async function triggerChangeBackground() {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
-            // 檢查彈窗容器是否存在
+            // 1. 強制檢查 Modal 是否存在
             const modal = document.getElementById('bg-selection-modal');
             const container = document.getElementById('album-list-container');
 
-            if (!modal || !container) {
-                console.error("找不到 Modal 或選單容器！Modal:", modal, "Container:", container);
-                showCustomAlert("❌", "系統錯誤", "UI 元件未找到，請檢查 index.html");
+            if (!modal) {
+                console.error("致命錯誤：在 HTML 中找不到 ID 為 'bg-selection-modal' 的元素！請檢查 index.html。");
+                return;
+            }
+            if (!container) {
+                console.error("致命錯誤：在 HTML 中找不到 ID 為 'album-list-container' 的元素！");
                 return;
             }
 
@@ -1999,7 +2002,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    container.innerHTML = '';
+                    container.innerHTML = ''; // 清空舊內容
 
                     result.albums.forEach(album => {
                         const btn = document.createElement('button');
@@ -2013,14 +2016,17 @@
                     });
 
                     // 隱藏 alert 並顯示選單
-                    document.getElementById('custom-alert').style.display = 'none';
-                    modal.style.display = 'flex';
+                    const alertBox = document.getElementById('custom-alert');
+                    if (alertBox) alertBox.style.display = 'none';
+
+                    modal.style.display = 'flex'; // 成功打開選單
                 }
             } catch (e) {
-                console.error("觸發選單失敗:", e);
+                console.error("讀取失敗:", e);
                 showCustomAlert("❌", "讀取失敗", "無法連接伺服器");
             }
         }
+
         // 2. 執行切換：根據選定的 ID 讀取照片並更換
         async function loadBackgroundByFolder(folderId) {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
