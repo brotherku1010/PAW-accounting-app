@@ -1522,27 +1522,36 @@
             updateFormVisibility();
         }
         // ================= 底圖生成系統 (雲端動態版) =================
+        // 首頁載入時產生底圖
         async function spawnRandomPic() {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
-                const response = await fetch(API_URL + "?action=getImages");
+                // ★ 核心新增：檢查瀏覽器有沒有記住上次選的資料夾 ID
+                const savedFolderId = localStorage.getItem('paw_saved_bg_folder');
+
+                // 決定要呼叫哪個 API 網址：如果有存過就用專屬的，沒存過就用預設的
+                let fetchUrl = API_URL + "?action=getImages";
+                if (savedFolderId) {
+                    fetchUrl = `${API_URL}?action=getImagesByFolder&folderId=${savedFolderId}`;
+                }
+
+                const response = await fetch(fetchUrl);
                 const result = await response.json();
 
-                if (result.success && result.images.length > 0) {
-                    // ★ 再次確保抓到唯一的 app-container
+                if (result.success && Array.isArray(result.images)) {
                     const container = document.querySelector('.app-container');
-                    if (!container) {
-                        console.error("錯誤：找不到 .app-container，請檢查 HTML 結構！");
-                        return;
-                    }
+                    if (!container) return;
+
+                    // 先清除畫面上的舊圖，確保不會重複疊加
+                    document.querySelectorAll('.random-pic').forEach(el => el.remove());
 
                     result.images.forEach((imgUrl, index) => {
                         renderSinglePic(imgUrl, index);
                     });
                 }
             } catch (error) {
-                console.log("無法召喚插圖：", error);
+                console.error("無法召喚插圖：", error);
             }
         }
         // 負責產生單張圖片並添加到畫面的小函式
@@ -2028,10 +2037,10 @@
         }
 
         // 2. 執行切換：根據選定的 ID 讀取照片並更換
+        // 2. 執行切換：根據選定的 ID 讀取照片並更換
         async function loadBackgroundByFolder(folderId) {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
-            // 💡 再次呼叫 ⏳，按鈕一樣會被隱藏
             showCustomAlert("⏳", "更新中", "正在下載圖片...");
 
             try {
@@ -2039,14 +2048,14 @@
                 const result = await response.json();
 
                 if (result.success && Array.isArray(result.images)) {
-                    document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
 
+                    // ★ 核心新增：把這次選擇的資料夾 ID 永久記在手機/電腦的瀏覽器裡！
+                    localStorage.setItem('paw_saved_bg_folder', folderId);
+
+                    document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
                     result.images.forEach((url, index) => renderSinglePic(url, index));
 
-                    // ★ 換圖成功，顯示 ✅，按鈕會重新秀出來
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
-
-                    // 💡 核心修正：確保 1.5 秒後關閉的也是 custom-alert-modal
                     setTimeout(() => {
                         const alertBox = document.getElementById('custom-alert-modal');
                         if (alertBox) alertBox.style.display = 'none';
@@ -2056,7 +2065,6 @@
                     throw new Error(result.message || "發生未知錯誤");
                 }
             } catch (e) {
-                // 失敗時顯示 ❌，按鈕會出現讓使用者能手動關閉
                 showCustomAlert("❌", "更換失敗", e.message);
             }
         }
