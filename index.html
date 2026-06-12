@@ -1547,27 +1547,36 @@
                 if (result.success && result.images.length > 0) {
                     const container = document.querySelector('.app-container');
 
+                    // ★ 核心新增：判斷目前是不是手機螢幕 (寬度小於 768px)
+                    const isMobile = window.innerWidth < 768;
+
                     result.images.forEach((imgUrl, index) => {
                         const dinoImg = document.createElement('img');
                         dinoImg.src = imgUrl;
                         dinoImg.className = 'dino-mascot';
 
-                        // 💡 為了容納 3 張圖，將隨機大小微調得稍微精緻一點 (150px ~ 250px 之間)
-                        dinoImg.style.width = Math.floor(Math.random() * 100 + 150) + 'px';
+                        // ★ 額外優化：讓圖片「點擊穿透」，避免蓋住按鈕導致使用者點不到介面
+                        dinoImg.style.pointerEvents = 'none';
 
-                        // 💡 智慧排版：根據 index (0, 1, 2) 分配到 上、中、下，並採取「左右交錯」
+                        // 💡 智慧縮放：手機版縮小(100~140px)，電腦版維持原大小(150~250px)
+                        const baseSize = isMobile
+                            ? Math.floor(Math.random() * 40 + 100)
+                            : Math.floor(Math.random() * 100 + 150);
+                        dinoImg.style.width = baseSize + 'px';
+
+                        // 💡 智慧排版：手機版推向極限邊緣防重疊，電腦版維持隨機錯落感
                         if (index === 0) {
                             // 【第 1 張：上方靠左】
-                            dinoImg.style.top = Math.floor(Math.random() * 10 + 5) + '%'; // 距離頂部 5%~15%
+                            dinoImg.style.top = isMobile ? '2%' : Math.floor(Math.random() * 10 + 5) + '%';
                             dinoImg.style.left = '-20px';
                         } else if (index === 1) {
                             // 【第 2 張：中間靠右】
-                            dinoImg.style.top = Math.floor(Math.random() * 15 + 40) + '%'; // 距離頂部 40%~55%
+                            dinoImg.style.top = isMobile ? '40%' : Math.floor(Math.random() * 10 + 40) + '%';
                             dinoImg.style.right = '-20px';
-                            dinoImg.style.transform = 'scaleX(-1)'; // 面向左邊，與上下兩張對望
+                            dinoImg.style.transform = 'scaleX(-1)'; // 面向左邊
                         } else {
                             // 【第 3 張：下方靠左】
-                            dinoImg.style.bottom = Math.floor(Math.random() * 10 + 5) + '%'; // 距離底部 5%~15%
+                            dinoImg.style.bottom = isMobile ? '2%' : Math.floor(Math.random() * 10 + 5) + '%';
                             dinoImg.style.left = '-10px';
                         }
 
@@ -1578,7 +1587,8 @@
             } catch (error) {
                 console.log("無法召喚插圖：", error);
             }
-        }        // 1. 開關編輯模式
+        }
+        // 1. 開關編輯模式
         function toggleWalletEditMode() {
             isWalletEditMode = !isWalletEditMode;
             const editBtn = document.getElementById('btn-toggle-wallet-edit');
@@ -1772,29 +1782,34 @@
             }
         }
 
-        // 3. 使用者點擊滑動開關時觸發
+        // 3. 使用者點擊滑動開關時觸發 (智慧判斷恢復機制)
         function handlePushToggle(checkbox) {
             const isChecked = checkbox.checked;
 
             window.OneSignalDeferred.push(async function (OneSignal) {
                 if (isChecked) {
-                    // 嘗試開啟推播：跳出詢問視窗
-                    OneSignal.Slidedown.promptPush().then(function (accepted) {
-                        if (accepted) {
-                            showCustomAlert("✅", "已開啟通知", "您做了很好的判斷ㄛ~");
-                            updatePushUI(true);
-                        } else {
-                            // 使用者拒絕或關閉視窗，退回未開啟狀態
-                            updatePushUI(false);
-
-                            // 防呆：如果是在瀏覽器設定裡徹底「封鎖」了通知，給予提示
-                            if (Notification.permission === "denied") {
-                                showCustomAlert("⚠️", "權限遭阻擋", "您這個可能要開啟瀏覽器的通知才可以歐！");
+                    // ★ 核心修復：檢查瀏覽器原生權限是否早已允許
+                    if (Notification.permission === "granted") {
+                        // 如果早就允許過，代表之前是「軟暫停 (optOut)」，現在直接「解除靜音 (optIn)」
+                        await OneSignal.User.PushSubscription.optIn();
+                        updatePushUI(true);
+                        showCustomAlert("✅", "已開啟通知", "您又做對了ㄛ~");
+                    } else {
+                        // 如果還沒允許過，才呼叫原本的彈出詢問視窗
+                        OneSignal.Slidedown.promptPush().then(function (accepted) {
+                            if (accepted) {
+                                showCustomAlert("✅", "已開啟通知", "您做了很好的判斷ㄛ~");
+                                updatePushUI(true);
+                            } else {
+                                updatePushUI(false);
+                                if (Notification.permission === "denied") {
+                                    showCustomAlert("⚠️", "權限遭阻擋", "您這個可能要開啟瀏覽器的通知才可以歐！");
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 } else {
-                    // 使用者手動關閉推播：執行取消訂閱
+                    // 使用者手動關閉推播：執行軟暫停 (optOut)
                     await OneSignal.User.PushSubscription.optOut();
                     updatePushUI(false);
                     showCustomAlert("🔕", "通知已關閉", "看來您非常相信自己的記憶力齁~");
