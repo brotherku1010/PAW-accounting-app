@@ -1261,18 +1261,12 @@
                 }
                 loadWalletManage();
             }
-            // 切換頁面的主函式
-            function switchPage(pageId) {
-                // ... (您原本隱藏所有頁面、顯示目標頁面的程式碼) ...
-
-                // ★ 請確保這段寫在 switchPage 函式的大括號 { } 裡面！
-                if (pageId === 'page-remind-manage') {
-                    // 每次進入提醒頁面，重置表單欄位並抓取最新清單
-                    document.getElementById('input-remind-name').value = "";
-                    document.getElementById('input-remind-date').value = "";
-                    document.getElementById('input-remind-amount').value = "";
-                    loadRemindList(); // 抓取清單
-                }
+            if (pageId === 'page-remind-manage') {
+                // 每次進入提醒頁面，重置表單欄位並抓取最新清單
+                document.getElementById('input-remind-name').value = "";
+                document.getElementById('input-remind-date').value = "";
+                document.getElementById('input-remind-amount').value = "";
+                loadRemindList(); // 抓取清單
             }
         }
 
