@@ -1977,46 +1977,72 @@
                 }
             );
         }
-        // 預留的「切換底圖」功能入口
+        // ================= 底圖切換系統(主函式)================= 
         // 1. 觸發選單：取得所有子資料夾 (分類)
+        async function triggerChangeBackground() {
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            showCustomAlert("⏳", "讀取中", "正在掃描雲端分類...");
+
+            try {
+                const response = await fetch(API_URL + "?action=getAlbumList");
+                const result = await response.json();
+
+                if (result.success) {
+                    const container = document.getElementById('album-list-container');
+                    container.innerHTML = ''; // 清空舊選項
+
+                    result.albums.forEach(album => {
+                        const btn = document.createElement('button');
+                        btn.innerText = album.name;
+                        // 設定按鈕外觀
+                        btn.style.cssText = "padding: 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; margin-bottom: 5px;";
+
+                        btn.onclick = () => {
+                            loadBackgroundByFolder(album.id);
+                            document.getElementById('bg-selection-modal').style.display = 'none';
+                        };
+                        container.appendChild(btn);
+                    });
+
+                    // 隱藏 alert 並顯示選單
+                    document.getElementById('custom-alert').style.display = 'none';
+                    document.getElementById('bg-selection-modal').style.display = 'flex';
+                } else {
+                    showCustomAlert("❌", "錯誤", result.message);
+                }
+            } catch (e) {
+                console.error("觸發選單失敗:", e);
+                showCustomAlert("❌", "讀取失敗", "無法連接伺服器");
+            }
+        }
+
+        // 2. 執行切換：根據選定的 ID 讀取照片並更換
         async function loadBackgroundByFolder(folderId) {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
-            console.log("開始載入資料夾:", folderId);
             showCustomAlert("⏳", "更新中", "正在更換底圖...");
 
             try {
-                const fetchUrl = `${API_URL}?action=getImagesByFolder&folderId=${folderId}`;
-                console.log("請求網址:", fetchUrl);
-
-                const response = await fetch(fetchUrl);
-
-                if (!response.ok) throw new Error("網路請求失敗，請檢查網路連線");
-
+                const response = await fetch(`${API_URL}?action=getImagesByFolder&folderId=${folderId}`);
                 const result = await response.json();
-                console.log("收到後端回傳資料:", result);
 
                 if (result.success) {
-                    // 檢查容器
-                    const container = document.querySelector('.app-container');
-                    if (!container) throw new Error("找不到 .app-container 容器");
-
-                    // 清除舊圖
+                    // 清除現有的底圖照片
                     document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
 
-                    // 渲染新圖
+                    // 使用你的渲染函式進行繪製
                     result.images.forEach((url, index) => {
-                        console.log("正在渲染第 " + index + " 張圖:", url);
                         renderSinglePic(url, index);
                     });
 
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
                 } else {
-                    throw new Error(result.message || "讀取失敗");
+                    throw new Error(result.message);
                 }
             } catch (e) {
-                console.error("DEBUG 錯誤訊息:", e); // 這行會顯示在 F12 控制台
-                showCustomAlert("❌", "讀取失敗", e.message); // 這行會顯示在介面上
+                console.error("更換底圖失敗:", e);
+                showCustomAlert("❌", "更換失敗", e.message);
             }
         }
 
