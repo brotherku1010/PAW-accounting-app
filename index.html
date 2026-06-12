@@ -1071,8 +1071,6 @@
             'pexels-enginakyurt-6348818.jpg'
         ];
         // ================= 趣味載入語錄 (廢話 JSON 陣列) =================
-        // ================= 趣味載入等待語錄庫 =================
-        // ================= 趣味載入等待語錄庫 =================
         const loadingQuotes = [
             // 原有廢話系列
             "在非洲，每六十秒，就有一分鐘過去...",
@@ -1721,12 +1719,15 @@
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
-                const response = await fetch(API_URL + "?action=getReminds");
+                // ★ 關鍵修正：加上 &t=... 時間戳記，打破瀏覽器快取，確保每次都抓最新資料
+                const fetchUrl = `${API_URL}?action=getReminds&t=${new Date().getTime()}`;
+                const response = await fetch(fetchUrl);
                 const result = await response.json();
 
                 if (result.success) {
                     if (result.data.length === 0) {
-                        container.innerHTML = `<div class="placeholder-box">目前尚未設定任何提醒。</div>`;
+                        // ★ 文字微調：顯示為「尚無提醒事項」
+                        container.innerHTML = `<div class="placeholder-box" style="color: var(--text-muted);">尚無提醒事項。</div>`;
                         return;
                     }
                     let html = '';
@@ -1741,17 +1742,17 @@
                                     期限: ${dateText} | 金額: $${item.amount}
                                 </span>
                             </div>
-                            </div>`;
+                        </div>`;
                     });
                     container.innerHTML = html;
                 } else {
-                    container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗</div>`;
+                    // ★ 順便把後端的錯誤訊息印出來，如果還是失敗，我們能馬上知道原因
+                    container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message || '格式異常'}</div>`;
                 }
             } catch (e) {
-                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路連線錯誤</div>`;
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路連線錯誤：${e.message}</div>`;
             }
         }
-
         // 4. 新增提醒
         async function executeAddRemind() {
             const name = document.getElementById('input-remind-name').value.trim();
