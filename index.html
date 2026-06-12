@@ -995,9 +995,9 @@
                     <div
                         style="font-size: 16px; font-weight: bold; color: white; display: flex; align-items: center; gap: 6px;">
                         <span class="material-symbols-outlined" id="push-status-icon">notifications_off</span>
-                        <span id="push-status-text">別太相信自己的頭腦...</span>
+                        <span id="push-status-text">通知要開麻</span>
                     </div>
-                    <div style="font-size: 12px; color: var(--text-muted);">開啟通知以防萬一啦~</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">別太相信自己的頭腦...開啟通知以防萬一啦~</div>
                 </div>
 
                 <label class="switch">
@@ -1326,7 +1326,8 @@
                 document.getElementById('input-remind-name').value = "";
                 document.getElementById('input-remind-date').value = "";
                 document.getElementById('input-remind-amount').value = "";
-                loadRemindList(); // 抓取清單
+                loadRemindList();
+                checkPushStatus(); // 抓取清單
             }
         }
 
@@ -1730,30 +1731,80 @@
                 }
             });
         }
-        // ================= 手動觸發推播授權 =================
-        function triggerPushSubscription() {
-            window.OneSignalDeferred.push(function (OneSignal) {
-                // 呼叫 OneSignal 的專屬提示視窗
-                OneSignal.Slidedown.promptPush().then(function (accepted) {
-                    if (accepted) {
-                        showCustomAlert("✅", "訂閱成功", "太棒了！未來有重要匯款即將到期時，會第一時間通知您喔！");
-                    } else {
-                        // 使用者拒絕或關閉視窗
-                        console.log("使用者未訂閱推播。");
-                    }
-                });
-            });
-        }
-        // ================= 提醒通知系統核心邏輯 =================
-        // 1. 推播授權
-        function triggerPushSubscription() {
-            window.OneSignalDeferred.push(function (OneSignal) {
-                OneSignal.Slidedown.promptPush().then(function (accepted) {
-                    if (accepted) showCustomAlert("✅", "啟動成功", "本裝置已連線！");
-                });
+        // ================= 開啟通知管理引擎 (OneSignal v16) =================
+        // 1. 檢查目前的訂閱狀態
+        function checkPushStatus() {
+            window.OneSignalDeferred.push(async function (OneSignal) {
+                // 確認是否在支援的環境中
+                const isSupported = OneSignal.Notifications.isPushSupported();
+                const checkbox = document.getElementById('push-toggle-checkbox');
+                const statusText = document.getElementById('push-status-text');
+
+                if (!isSupported) {
+                    statusText.innerText = "本裝置/瀏覽器不支援推播";
+                    checkbox.disabled = true;
+                    return;
+                }
+
+                // 讀取 OneSignal 訂閱狀態 (optedIn)
+                const isSubscribed = OneSignal.User.PushSubscription.optedIn;
+
+                // 解除開關的鎖定並更新畫面
+                checkbox.disabled = false;
+                updatePushUI(isSubscribed);
             });
         }
 
+        // 2. 更新畫面文字與顏色的輔助函式
+        function updatePushUI(isSubscribed) {
+            const checkbox = document.getElementById('push-toggle-checkbox');
+            const statusText = document.getElementById('push-status-text');
+            const statusIcon = document.getElementById('push-status-icon');
+
+            checkbox.checked = isSubscribed;
+
+            if (isSubscribed) {
+                statusText.innerText = "推播已開啟";
+                statusText.style.color = "#2ecc71"; // 成功綠
+                statusIcon.innerText = "notifications_active";
+                statusIcon.style.color = "#2ecc71";
+            } else {
+                statusText.innerText = "推播未開啟";
+                statusText.style.color = "white"; // 預設白
+                statusIcon.innerText = "notifications_off";
+                statusIcon.style.color = "white";
+            }
+        }
+
+        // 3. 使用者點擊滑動開關時觸發
+        function handlePushToggle(checkbox) {
+            const isChecked = checkbox.checked;
+
+            window.OneSignalDeferred.push(async function (OneSignal) {
+                if (isChecked) {
+                    // 嘗試開啟推播：跳出詢問視窗
+                    OneSignal.Slidedown.promptPush().then(function (accepted) {
+                        if (accepted) {
+                            showCustomAlert("✅", "已開啟通知", "您做了很好的判斷ㄛ~");
+                            updatePushUI(true);
+                        } else {
+                            // 使用者拒絕或關閉視窗，退回未開啟狀態
+                            updatePushUI(false);
+
+                            // 防呆：如果是在瀏覽器設定裡徹底「封鎖」了通知，給予提示
+                            if (Notification.permission === "denied") {
+                                showCustomAlert("⚠️", "權限遭阻擋", "您這個可能要開啟瀏覽器的通知才可以歐！");
+                            }
+                        }
+                    });
+                } else {
+                    // 使用者手動關閉推播：執行取消訂閱
+                    await OneSignal.User.PushSubscription.optOut();
+                    updatePushUI(false);
+                    showCustomAlert("🔕", "通知已關閉", "看來您非常相信自己的記憶力齁~");
+                }
+            });
+        }
         // 2. 切換週期對應的日期介面
         function toggleRemindDateUI() {
             const cycle = document.querySelector('input[name="remind-cycle"]:checked').value;
