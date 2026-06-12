@@ -21,10 +21,8 @@
                 appId: "63edf55e-d6fa-4954-a990-e83ff5675d51",
                 notifyButton: {
                     enable: false,
-                },
-                // 強制指定 Service Worker 檔案路徑與作用域 (配合 GitHub Pages)
-                serviceWorkerPath: "/PAW-accounting-app/OneSignalSDKWorker.js",
-                serviceWorkerParam: { scope: "/PAW-accounting-app/" }
+                }
+                // 這裡不需要任何 serviceWorkerPath 的設定了，因為它會自動去根目錄找！
             });
         });
     </script>
