@@ -1987,6 +1987,7 @@
         // ================= 底圖切換系統(主函式)================= 
         // 1. 觸發選單：取得所有子資料夾 (分類)
         // 1. 觸發選單：取得所有子資料夾 (分類)
+        // 1. 觸發選單：取得所有子資料夾 (分類)
         async function triggerChangeBackground() {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
@@ -2015,8 +2016,8 @@
                         container.appendChild(btn);
                     });
 
-                    // ★ 核心動作：資料到了，強制關閉剛剛的「讀取中」視窗
-                    const alertBox = document.getElementById('custom-alert');
+                    // ★ 核心修正：將 ID 改為 custom-alert-modal，強制關閉剛剛的「讀取中」視窗
+                    const alertBox = document.getElementById('custom-alert-modal');
                     if (alertBox) alertBox.style.display = 'none';
 
                     modal.style.display = 'flex'; // 成功打開分類選單
@@ -2042,10 +2043,10 @@
 
                     result.images.forEach((url, index) => renderSinglePic(url, index));
 
-                    // ★ 核心動作：換圖成功，顯示 ✅，第一步的邏輯會把確認按鈕重新秀出來！
+                    // ★ 換圖成功，顯示 ✅，按鈕會重新秀出來
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
 
-                    // 💡 貼心優化：1.5秒後連這個成功視窗都幫使用者自動關掉
+                    // 💡 核心修正：確保 1.5 秒後關閉的也是 custom-alert-modal
                     setTimeout(() => {
                         const alertBox = document.getElementById('custom-alert-modal');
                         if (alertBox) alertBox.style.display = 'none';
@@ -2055,9 +2056,11 @@
                     throw new Error(result.message || "發生未知錯誤");
                 }
             } catch (e) {
-                showCustomAlert("❌", "更換失敗", e.message); // 失敗時顯示按鈕讓使用者關閉
+                // 失敗時顯示 ❌，按鈕會出現讓使用者能手動關閉
+                showCustomAlert("❌", "更換失敗", e.message);
             }
         }
+
         // ================= 第一大項-收支報表，控制系統 =================
         // 1. 讀取並渲染報表 (帶有快取機制版)
         async function loadReport() {
