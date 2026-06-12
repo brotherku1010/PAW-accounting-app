@@ -684,22 +684,11 @@
                         style="cursor: pointer; color: #d6a5ff; font-size: 22px; user-select:none;">visibility</span>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-
-                    <div id="home-screen-content"
-                        style="flex: 1; min-height: 80px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
-                    </div>
-
-                    <button onclick="switchPage('page-remind-manage')" title="設定繳費與推播提醒"
-                        style="background: rgba(214, 165, 255, 0.15); border: 1px solid rgba(214, 165, 255, 0.3); color: #d6a5ff; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; margin-left: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);"
-                        onmousedown="this.style.transform='scale(0.85)'" onmouseup="this.style.transform='scale(1)'">
-                        <span class="material-symbols-outlined" style="font-size: 24px;">notifications</span>
-                    </button>
-
+                <div id="home-screen-content"
+                    style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
                 </div>
 
             </div>
-
             <div class="menu-grid">
                 <div class="menu-item" onclick="switchPage('page-report')">
                     <span class="material-symbols-outlined">bar_chart</span>
@@ -2875,7 +2864,16 @@
                 html += `
                     <div style="text-align: center; margin-bottom: 12px;">
                         <span style="font-size:12px; color:rgba(255,255,255,0.6);">本月總資產結餘</span>
-                        <div style="font-size:26px; font-weight:bold; color:white; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 3px;">
+                            <div style="font-size:26px; font-weight:bold; color:white; font-family:monospace;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                            
+                            <button onclick="switchPage('page-remind-manage')" title="提醒通知設定" 
+                                style="background: rgba(214, 165, 255, 0.15); border: 1px solid rgba(214, 165, 255, 0.3); color: #d6a5ff; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;" 
+                                onmousedown="this.style.transform='scale(0.85)'" 
+                                onmouseup="this.style.transform='scale(1)'">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                            </button>
+                        </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                 `;
@@ -2889,12 +2887,21 @@
                 html += `</div>`;
             }
 
-            // 頁籤 2：💡 錢包帳目 (完全移除寫死數據，真實連動「我的錢包」工作表)
+            // 頁籤 2：錢包帳目
             else if (currentHomeTab === 'wallet') {
                 html += `
                     <div style="text-align: center; margin-bottom: 12px;">
                         <span style="font-size:12px; color:rgba(255,255,255,0.6);">實體資產總計</span>
-                        <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; margin-top:3px;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 3px;">
+                            <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                            
+                            <button onclick="switchPage('page-remind-manage')" title="提醒通知設定" 
+                                style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #2ecc71; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;" 
+                                onmousedown="this.style.transform='scale(0.85)'" 
+                                onmouseup="this.style.transform='scale(1)'">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
+                            </button>
+                        </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
                 `;
@@ -2914,7 +2921,7 @@
             }
 
             contentArea.innerHTML = html;
-        }
+        }        
     </script>
     <div id="custom-alert-modal" class="custom-modal-overlay">
         <div class="custom-modal">
