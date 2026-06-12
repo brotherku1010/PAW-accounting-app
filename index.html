@@ -931,9 +931,10 @@
                 <div class="radial-item item-2" onclick="alert('主題色調功能開發中...'); closeSettingsMenu();" title="主題色調">
                     <span class="material-symbols-outlined">palette</span>
                 </div>
-                <div class="radial-item item-3" onclick="switchPage('page-wallet-manage'); closeSettingsMenu();"
-                    title="管理錢包">
-                    <span class="material-symbols-outlined">account_balance_wallet</span>
+                <div onclick="triggerChangeBackground()"
+                    style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px); cursor: pointer; transition: 0.2s;"
+                    onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
+                    <span class="material-symbols-outlined" style="color: white; font-size: 24px;">wallpaper</span>
                 </div>
             </div>
 
@@ -1981,6 +1982,10 @@
                 }
             );
         }
+        // 預留的「切換底圖」功能入口
+        function triggerChangeBackground() {
+            showCustomAlert("🖼️", "功能建置中", "切換底圖功能即將推出，敬請期待！");
+        }
         // ================= 第一大項-收支報表，控制系統 =================
 
 
@@ -2881,7 +2886,12 @@
                         
                         <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 3px; position: relative;">
                             
-                            <div style="width: 32px; visibility: hidden;"></div>
+                            <button onclick="switchPage('page-wallet-manage')" title="管理錢包" 
+                                style="background: rgba(214, 165, 255, 0.15); border: 1px solid rgba(214, 165, 255, 0.3); color: #d6a5ff; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;" 
+                                onmousedown="this.style.transform='scale(0.85)'" 
+                                onmouseup="this.style.transform='scale(1)'">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">account_balance_wallet</span>
+                            </button>
 
                             <div style="flex: 1; text-align: center; font-size:26px; font-weight:bold; color:white; font-family:monospace; white-space: nowrap;">
                                 $ ${cachedReportData.totalBalance[5] || '0'}
@@ -2915,7 +2925,12 @@
                         
                         <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 3px; position: relative;">
                             
-                            <div style="width: 32px; visibility: hidden;"></div>
+                            <button onclick="switchPage('page-wallet-manage')" title="管理錢包" 
+                                style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #2ecc71; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;" 
+                                onmousedown="this.style.transform='scale(0.85)'" 
+                                onmouseup="this.style.transform='scale(1)'">
+                                <span class="material-symbols-outlined" style="font-size: 18px;">account_balance_wallet</span>
+                            </button>
 
                             <div style="flex: 1; text-align: center; font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; white-space: nowrap;">
                                 $ ${cachedReportData.totalBalance[5] || '0'}
@@ -2947,7 +2962,7 @@
             }
 
             contentArea.innerHTML = html;
-        }         
+        }                
     </script>
     <div id="custom-alert-modal" class="custom-modal-overlay">
         <div class="custom-modal">
