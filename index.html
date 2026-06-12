@@ -1544,22 +1544,36 @@
                 const response = await fetch(API_URL + "?action=getImages");
                 const result = await response.json();
 
-                if (result.success && result.images.length > 0) {
-                    result.images.forEach((url, index) => renderSinglePic(url, index));
+                // 💡 增加防呆檢查：result 存在且有 images 屬性
+                if (result && result.success && result.images && Array.isArray(result.images)) {
+                    // 先清理舊圖，避免重疊與空節點問題
+                    document.querySelectorAll('.random-pic').forEach(el => el.remove());
+
+                    result.images.forEach((imgUrl, index) => {
+                        renderSinglePic(imgUrl, index);
+                    });
+                } else {
+                    console.warn("圖片讀取成功，但沒有圖片資料或結構錯誤：", result);
                 }
             } catch (error) {
-                console.log("無法召喚插圖：", error);
+                console.error("無法召喚插圖：", error);
             }
         }
         // 負責產生單張圖片並添加到畫面的小函式
         function renderSinglePic(imgUrl, index) {
             const container = document.querySelector('.app-container');
-            const isMobile = window.innerWidth < 768;
+
+            // 💡 防呆：如果找不到容器，直接終止，避免繼續執行導致崩潰
+            if (!container) {
+                console.error("找不到 .app-container 容器，無法渲染圖片");
+                return;
+            }
 
             const picImg = document.createElement('img');
             picImg.src = imgUrl;
             picImg.className = 'random-pic';
             picImg.style.pointerEvents = 'none';
+            picImg.style.position = 'absolute'; // 確保它是相對於容器定位的
 
             // 尺寸設定
             const baseSize = isMobile
