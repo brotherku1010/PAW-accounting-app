@@ -22,11 +22,9 @@
                 notifyButton: {
                     enable: false,
                 },
-                // ★ OneSignal v16 專用的子資料夾設定語法
-                serviceWorker: {
-                    path: "/PAW-accounting-app/OneSignalSDKWorker.js",
-                    scope: "/PAW-accounting-app/"
-                }
+                // 強制指定 Service Worker 檔案路徑與作用域 (配合 GitHub Pages)
+                serviceWorkerPath: "/PAW-accounting-app/OneSignalSDKWorker.js",
+                serviceWorkerParam: { scope: "/PAW-accounting-app/" }
             });
         });
     </script>
