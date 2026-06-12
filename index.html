@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#4b6cb7">
     <title>專屬記帳 APP</title>
     <link
-        href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=LXGW+WenKai+TC&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;700&family=Press+Start+2P&family=ZCOOL+KuaiLe&display=swap"
         rel="stylesheet">
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
@@ -57,6 +57,7 @@
             justify-content: center;
             font-size: 16px;
             color-scheme: dark;
+            transition: font-family 0.3s ease;
         }
 
         /* 手機直版框架 + 背景環境光點綴 */
@@ -931,10 +932,9 @@
                 <div class="radial-item item-2" onclick="alert('主題色調功能開發中...'); closeSettingsMenu();" title="主題色調">
                     <span class="material-symbols-outlined">palette</span>
                 </div>
-                <div onclick="triggerChangeBackground()"
-                    style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border: 1px solid rgba(255,255,255,0.2); display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); backdrop-filter: blur(10px); cursor: pointer; transition: 0.2s;"
-                    onmousedown="this.style.transform='scale(0.9)'" onmouseup="this.style.transform='scale(1)'">
-                    <span class="material-symbols-outlined" style="color: white; font-size: 24px;">wallpaper</span>
+
+                <div class="radial-item item-3" onclick="triggerChangeBackground(); closeSettingsMenu();" title="切換底圖">
+                    <span class="material-symbols-outlined">wallpaper</span>
                 </div>
             </div>
 
@@ -2231,7 +2231,11 @@
         const fontOptions = [
             { name: "科技黑體", family: "'Noto Sans TC', sans-serif" },
             { name: "質感明體", family: "'Noto Serif TC', serif" },
-            { name: "手寫楷體", family: "'LXGW WenKai TC', cursive" }
+            { name: "手寫楷體", family: "'LXGW WenKai TC', cursive" },
+            { name: "標準黑體", family: "'Noto Sans TC', sans-serif" },
+            { name: "手寫風格", family: "'Dancing Script', cursive" },
+            { name: "活潑趣體", family: "'ZCOOL KuaiLe', cursive" },
+            { name: "復古像素", family: "'Press Start 2P', cursive" }
         ];
 
         // 讀取本機記憶的字體設定，沒有的話預設為 0 (黑體)
