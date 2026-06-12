@@ -14,14 +14,15 @@
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
         OneSignalDeferred.push(function (OneSignal) {
             OneSignal.init({
-                appId: "63edf55e-d6fa-4954-a990-e83ff5675d51", // 您的專屬 App ID
+                appId: "63edf55e-d6fa-4954-a990-e83ff5675d51", // 您的 App ID
                 safari_web_id: "",
                 notifyButton: {
-                    enable: true, // 啟用右下角的訂閱小鈴鐺按鈕
+                    enable: false, // 💡 把它改成 false，徹底隱藏預設鈴鐺
                 },
             });
         });
@@ -628,13 +629,25 @@
                             style="font-size:12px; padding: 5px 12px; border-radius:8px; cursor:pointer; font-weight:bold; transition:all 0.2s;"
                             class="home-tab">錢包帳目</span>
                     </div>
+
                     <span onclick="toggleAmountVisibility()" class="material-symbols-outlined" id="btn-privacy-eye"
                         style="cursor: pointer; color: #d6a5ff; font-size: 22px; user-select:none;">visibility</span>
                 </div>
 
-                <div id="home-screen-content"
-                    style="min-height: 120px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+
+                    <div id="home-screen-content"
+                        style="flex: 1; min-height: 80px; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+                    </div>
+
+                    <button onclick="switchPage('page-remind-manage')" title="設定繳費與推播提醒"
+                        style="background: rgba(214, 165, 255, 0.15); border: 1px solid rgba(214, 165, 255, 0.3); color: #d6a5ff; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0; margin-left: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);"
+                        onmousedown="this.style.transform='scale(0.85)'" onmouseup="this.style.transform='scale(1)'">
+                        <span class="material-symbols-outlined" style="font-size: 24px;">notifications</span>
+                    </button>
+
                 </div>
+
             </div>
 
             <div class="menu-grid">
@@ -919,6 +932,57 @@
                 </div>
             </div>
         </div>
+        <div id="page-remind-manage" class="page">
+            <div class="page-header">
+                <div class="back-btn" onclick="switchPage('page-home')">❮</div>
+                <h2>提醒通知設定</h2>
+            </div>
+
+            <div
+                style="background: linear-gradient(135deg, rgba(159,53,255,0.15), rgba(89,28,158,0.25)); border: 1px solid rgba(214, 165, 255, 0.3); padding: 20px; border-radius: 16px; margin-bottom: 25px; text-align: center;">
+                <div style="font-size: 14px; color: #e0e0e0; margin-bottom: 12px;">若要接收手機系統層級的到期推播，請先啟動授權：</div>
+                <button onclick="triggerPushSubscription()"
+                    style="background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px var(--primary-glow);">
+                    <span class="material-symbols-outlined">notifications_active</span> 開啟推播通知
+                </button>
+            </div>
+
+            <div
+                style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h3
+                    style="margin-top:0; margin-bottom:18px; color:#d6a5ff; font-size:16px; display:flex; align-items:center; gap:6px;">
+                    <span class="material-symbols-outlined" style="font-size:20px;">add_task</span> 新增定期排程提醒
+                </h3>
+
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div>
+                        <label
+                            style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;">項目名稱</label>
+                        <input type="text" id="input-remind-name" placeholder="例如：房租、信用卡卡費"
+                            style="width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:white;">
+                    </div>
+
+                    <div>
+                        <label style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;">應繳費期限
+                            (到期日期)</label>
+                        <input type="date" id="input-remind-date"
+                            style="width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:white;">
+                    </div>
+
+                    <div>
+                        <label
+                            style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;">應繳金額</label>
+                        <input type="number" id="input-remind-amount" placeholder="請輸入金額"
+                            style="width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:white;">
+                    </div>
+
+                    <button onclick="executeAddRemind()"
+                        style="background: #2ecc71; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; font-size: 15px; cursor: pointer; margin-top: 5px; transition: 0.2s;">
+                        儲存提醒項目
+                    </button>
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -1166,6 +1230,12 @@
                     editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span>';
                 }
                 loadWalletManage();
+            }
+            if (pageId === 'page-remind-manage') {
+                // 每次進入提醒頁面，重置表單欄位
+                document.getElementById('input-remind-name').value = "";
+                document.getElementById('input-remind-date').value = "";
+                document.getElementById('input-remind-amount').value = "";
             }
         }
 
@@ -1568,6 +1638,84 @@
                     showCustomAlert("❌", "連線錯誤", error.message);
                 }
             });
+        }
+        // ================= 手動觸發推播授權 =================
+        function triggerPushSubscription() {
+            window.OneSignalDeferred.push(function (OneSignal) {
+                // 呼叫 OneSignal 的專屬提示視窗
+                OneSignal.Slidedown.promptPush().then(function (accepted) {
+                    if (accepted) {
+                        showCustomAlert("✅", "訂閱成功", "太棒了！未來有重要匯款即將到期時，會第一時間通知您喔！");
+                    } else {
+                        // 使用者拒絕或關閉視窗
+                        console.log("使用者未訂閱推播。");
+                    }
+                });
+            });
+        }
+        // ================= 提醒通知系統控制核心 =================
+
+        // 1. 觸發手機原生的推播訂閱詢問
+        function triggerPushSubscription() {
+            window.OneSignalDeferred.push(function (OneSignal) {
+                OneSignal.Slidedown.promptPush().then(function (accepted) {
+                    if (accepted) {
+                        showCustomAlert("✅", "啟動成功", "太棒了！本裝置已與記帳通知中樞完成安全連線！");
+                    } else {
+                        console.log("使用者未訂閱推播。");
+                    }
+                });
+            });
+        }
+
+        // 2. 收集表單資料並傳送到後端 GAS 工作表 '提醒通知'
+        async function executeAddRemind() {
+            const name = document.getElementById('input-remind-name').value.trim();
+            const date = document.getElementById('input-remind-date').value;
+            const amount = document.getElementById('input-remind-amount').value.trim();
+
+            if (!name || !date || !amount) {
+                showCustomAlert("⚠️", "欄位未填滿", "請將項目、到期日與金額填寫完整喔！");
+                return;
+            }
+
+            // 雙視窗流：跳出第一個處理中視窗，並隱藏關閉鍵
+            showCustomAlert("⏳", "處理中", "正在將排程計入雲端資料庫...");
+            const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
+            alertButtons.forEach(btn => btn.style.display = 'none');
+
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    redirect: "follow",
+                    body: JSON.stringify({
+                        action: "addRemind",
+                        name: name,
+                        date: date,
+                        amount: amount
+                    })
+                });
+                const result = await response.json();
+
+                // 後端處理完畢，恢復按鈕
+                alertButtons.forEach(btn => btn.style.display = '');
+
+                if (result.success) {
+                    // 清空輸入框
+                    document.getElementById('input-remind-name').value = "";
+                    document.getElementById('input-remind-date').value = "";
+                    document.getElementById('input-remind-amount').value = "";
+                    // 跳出第二個成功視窗
+                    showCustomAlert("✅", "儲存成功", result.message);
+                } else {
+                    showCustomAlert("❌", "儲存失敗", result.message);
+                }
+            } catch (error) {
+                alertButtons.forEach(btn => btn.style.display = '');
+                showCustomAlert("❌", "連線錯誤", error.message);
+            }
         }
         // ================= 第一大項-收支報表，控制系統 =================
         // 全域快取變數
