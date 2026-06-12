@@ -2864,11 +2864,17 @@
                 html += `
                     <div style="text-align: center; margin-bottom: 12px;">
                         <span style="font-size:12px; color:rgba(255,255,255,0.6);">本月總資產結餘</span>
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 3px;">
-                            <div style="font-size:26px; font-weight:bold; color:white; font-family:monospace;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 3px; position: relative;">
+                            
+                            <div style="width: 32px; visibility: hidden;"></div>
+
+                            <div style="flex: 1; text-align: center; font-size:26px; font-weight:bold; color:white; font-family:monospace; white-space: nowrap;">
+                                $ ${cachedReportData.totalBalance[5] || '0'}
+                            </div>
                             
                             <button onclick="switchPage('page-remind-manage')" title="提醒通知設定" 
-                                style="background: rgba(214, 165, 255, 0.15); border: 1px solid rgba(214, 165, 255, 0.3); color: #d6a5ff; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;" 
+                                style="background: rgba(214, 165, 255, 0.15); border: 1px solid rgba(214, 165, 255, 0.3); color: #d6a5ff; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;" 
                                 onmousedown="this.style.transform='scale(0.85)'" 
                                 onmouseup="this.style.transform='scale(1)'">
                                 <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
@@ -2892,11 +2898,17 @@
                 html += `
                     <div style="text-align: center; margin-bottom: 12px;">
                         <span style="font-size:12px; color:rgba(255,255,255,0.6);">實體資產總計</span>
-                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 3px;">
-                            <div style="font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace;">$ ${cachedReportData.totalBalance[5] || '0'}</div>
+                        
+                        <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 3px; position: relative;">
+                            
+                            <div style="width: 32px; visibility: hidden;"></div>
+
+                            <div style="flex: 1; text-align: center; font-size:26px; font-weight:bold; color:#2ecc71; font-family:monospace; white-space: nowrap;">
+                                $ ${cachedReportData.totalBalance[5] || '0'}
+                            </div>
                             
                             <button onclick="switchPage('page-remind-manage')" title="提醒通知設定" 
-                                style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #2ecc71; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s;" 
+                                style="background: rgba(46, 204, 113, 0.15); border: 1px solid rgba(46, 204, 113, 0.3); color: #2ecc71; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; flex-shrink: 0;" 
                                 onmousedown="this.style.transform='scale(0.85)'" 
                                 onmouseup="this.style.transform='scale(1)'">
                                 <span class="material-symbols-outlined" style="font-size: 18px;">notifications</span>
@@ -2921,7 +2933,7 @@
             }
 
             contentArea.innerHTML = html;
-        }        
+        }         
     </script>
     <div id="custom-alert-modal" class="custom-modal-overlay">
         <div class="custom-modal">
