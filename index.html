@@ -2031,14 +2031,17 @@
                     // 1. 清除舊圖
                     document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
 
-                    // 2. 直接使用我們剛拆出來的小函式進行渲染
+                    // 2. 渲染新圖
                     result.images.forEach((url, index) => renderSinglePic(url, index));
 
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
+                } else {
+                    throw new Error(result.message || "讀取失敗");
                 }
-            }
             } catch (e) {
-            showCustomAlert("❌", "更換失敗", e.message);
+                // 這裡確保 catch 有正確接住上面的錯誤
+                showCustomAlert("❌", "更換失敗", e.message);
+            }
         }
 
 
