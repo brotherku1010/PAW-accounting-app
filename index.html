@@ -940,18 +940,25 @@
 
             <div
                 style="background: linear-gradient(135deg, rgba(159,53,255,0.15), rgba(89,28,158,0.25)); border: 1px solid rgba(214, 165, 255, 0.3); padding: 20px; border-radius: 16px; margin-bottom: 25px; text-align: center;">
-                <div style="font-size: 14px; color: #e0e0e0; margin-bottom: 12px;">若要接收手機系統層級的到期推播，請先啟動授權：</div>
+                <div style="font-size: 14px; color: #e0e0e0; margin-bottom: 12px;">若要接收系統層級的到期推播，請先啟動授權：</div>
                 <button onclick="triggerPushSubscription()"
                     style="background: var(--primary); color: white; border: none; padding: 12px 25px; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px var(--primary-glow);">
                     <span class="material-symbols-outlined">notifications_active</span> 開啟推播通知
                 </button>
             </div>
 
+            <h3 style="margin-bottom:12px; color:#d6a5ff; font-size:16px; display:flex; align-items:center; gap:6px;">
+                <span class="material-symbols-outlined" style="font-size:20px;">format_list_bulleted</span> 目前設定的提醒
+            </h3>
+            <div id="remind-list-container" style="margin-bottom: 25px; min-height: 80px;">
+                <div class="placeholder-box">⏳ 讀取資料中...</div>
+            </div>
+
             <div
                 style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 20px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
                 <h3
                     style="margin-top:0; margin-bottom:18px; color:#d6a5ff; font-size:16px; display:flex; align-items:center; gap:6px;">
-                    <span class="material-symbols-outlined" style="font-size:20px;">add_task</span> 新增定期排程提醒
+                    <span class="material-symbols-outlined" style="font-size:20px;">add_task</span> 新增提醒排程
                 </h3>
 
                 <div style="display: flex; flex-direction: column; gap: 15px;">
@@ -963,10 +970,34 @@
                     </div>
 
                     <div>
-                        <label style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;">應繳費期限
-                            (到期日期)</label>
-                        <input type="date" id="input-remind-date"
-                            style="width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:white;">
+                        <label
+                            style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;">提醒週期</label>
+                        <div
+                            style="display: flex; gap: 20px; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 10px; border: 1px solid var(--card-border);">
+                            <label style="color: white; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                                <input type="radio" name="remind-cycle" value="每月" checked
+                                    onchange="toggleRemindDateUI()"> 每月
+                            </label>
+                            <label style="color: white; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                                <input type="radio" name="remind-cycle" value="單次" onchange="toggleRemindDateUI()"> 單次
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            style="display:block; font-size:13px; color:var(--text-muted); margin-bottom:6px;">應繳費期限</label>
+                        <div id="ui-remind-monthly">
+                            <select id="input-remind-day"
+                                style="width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid var(--card-border); background:var(--card-bg); color:white; font-size:15px;">
+                                <option value="">請選擇每月幾號</option>
+                                <script>for (let i = 1; i <= 31; i++) document.write(`<option value="${i}">${i} 號</option>`);</script>
+                            </select>
+                        </div>
+                        <div id="ui-remind-once" style="display:none;">
+                            <input type="date" id="input-remind-date"
+                                style="width:100%; box-sizing:border-box; padding:12px; border-radius:10px; border:1px solid var(--card-border); background:rgba(0,0,0,0.2); color:white; font-size:15px;">
+                        </div>
                     </div>
 
                     <div>
@@ -1653,34 +1684,91 @@
                 });
             });
         }
-        // ================= 提醒通知系統控制核心 =================
+        // ================= 提醒通知系統核心邏輯 =================
 
-        // 1. 觸發手機原生的推播訂閱詢問
+        // 切換進入提醒頁面時，自動抓取資料
+        if (pageId === 'page-remind-manage') {
+            loadRemindList();
+        }
+
+        // 1. 推播授權
         function triggerPushSubscription() {
             window.OneSignalDeferred.push(function (OneSignal) {
                 OneSignal.Slidedown.promptPush().then(function (accepted) {
-                    if (accepted) {
-                        showCustomAlert("✅", "啟動成功", "太棒了！本裝置已與記帳通知中樞完成安全連線！");
-                    } else {
-                        console.log("使用者未訂閱推播。");
-                    }
+                    if (accepted) showCustomAlert("✅", "啟動成功", "本裝置已連線！");
                 });
             });
         }
 
-        // 2. 收集表單資料並傳送到後端 GAS 工作表 '提醒通知'
+        // 2. 切換週期對應的日期介面
+        function toggleRemindDateUI() {
+            const cycle = document.querySelector('input[name="remind-cycle"]:checked').value;
+            if (cycle === "每月") {
+                document.getElementById('ui-remind-monthly').style.display = 'block';
+                document.getElementById('ui-remind-once').style.display = 'none';
+            } else {
+                document.getElementById('ui-remind-monthly').style.display = 'none';
+                document.getElementById('ui-remind-once').style.display = 'block';
+            }
+        }
+
+        // 3. 讀取並渲染提醒清單
+        async function loadRemindList() {
+            const container = document.getElementById('remind-list-container');
+            container.innerHTML = `<div class="placeholder-box">⏳ 讀取排程中...</div>`;
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+
+            try {
+                const response = await fetch(API_URL + "?action=getReminds");
+                const result = await response.json();
+
+                if (result.success) {
+                    if (result.data.length === 0) {
+                        container.innerHTML = `<div class="placeholder-box">目前尚未設定任何提醒。</div>`;
+                        return;
+                    }
+                    let html = '';
+                    result.data.forEach(item => {
+                        let dateText = item.cycle === "每月" ? `每月 ${item.date} 號` : item.date;
+                        html += `
+                        <div style="background: var(--card-bg); border: 1px solid var(--card-border); padding: 15px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <span style="font-weight:bold; color:white; font-size:16px;">${item.name}</span>
+                                <span style="font-size:12px; color:var(--text-muted);">
+                                    <span style="background:rgba(214,165,255,0.2); color:#d6a5ff; padding:2px 6px; border-radius:4px; margin-right:5px;">${item.cycle}</span>
+                                    期限: ${dateText} | 金額: $${item.amount}
+                                </span>
+                            </div>
+                            </div>`;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗</div>`;
+                }
+            } catch (e) {
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路連線錯誤</div>`;
+            }
+        }
+
+        // 4. 新增提醒
         async function executeAddRemind() {
             const name = document.getElementById('input-remind-name').value.trim();
-            const date = document.getElementById('input-remind-date').value;
+            const cycle = document.querySelector('input[name="remind-cycle"]:checked').value;
             const amount = document.getElementById('input-remind-amount').value.trim();
 
-            if (!name || !date || !amount) {
-                showCustomAlert("⚠️", "欄位未填滿", "請將項目、到期日與金額填寫完整喔！");
+            let dateVal = "";
+            if (cycle === "每月") {
+                dateVal = document.getElementById('input-remind-day').value;
+            } else {
+                dateVal = document.getElementById('input-remind-date').value;
+            }
+
+            if (!name || !dateVal || !amount) {
+                showCustomAlert("⚠️", "資料不全", "請將項目名稱、日期與金額填寫完整！");
                 return;
             }
 
-            // 雙視窗流：跳出第一個處理中視窗，並隱藏關閉鍵
-            showCustomAlert("⏳", "處理中", "正在將排程計入雲端資料庫...");
+            showCustomAlert("⏳", "處理中", "寫入雲端資料庫...");
             const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
             alertButtons.forEach(btn => btn.style.display = 'none');
 
@@ -1689,32 +1777,21 @@
                 const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
-                    redirect: "follow",
-                    body: JSON.stringify({
-                        action: "addRemind",
-                        name: name,
-                        date: date,
-                        amount: amount
-                    })
+                    body: JSON.stringify({ action: "addRemind", name: name, cycle: cycle, date: dateVal, amount: amount })
                 });
                 const result = await response.json();
-
-                // 後端處理完畢，恢復按鈕
                 alertButtons.forEach(btn => btn.style.display = '');
 
                 if (result.success) {
-                    // 清空輸入框
                     document.getElementById('input-remind-name').value = "";
-                    document.getElementById('input-remind-date').value = "";
                     document.getElementById('input-remind-amount').value = "";
-                    // 跳出第二個成功視窗
+                    // 新增成功後自動重抓資料，更新清單
+                    loadRemindList();
                     showCustomAlert("✅", "儲存成功", result.message);
-                } else {
-                    showCustomAlert("❌", "儲存失敗", result.message);
                 }
-            } catch (error) {
+            } catch (e) {
                 alertButtons.forEach(btn => btn.style.display = '');
-                showCustomAlert("❌", "連線錯誤", error.message);
+                showCustomAlert("❌", "錯誤", e.message);
             }
         }
         // ================= 第一大項-收支報表，控制系統 =================
