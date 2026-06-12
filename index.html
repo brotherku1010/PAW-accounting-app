@@ -926,7 +926,7 @@
 
         <div id="settings-menu" class="fab-settings-wrapper">
             <div class="radial-menu">
-                <div class="radial-item item-1" onclick="toggleFont(); closeSettingsMenu();" title="語言/字體切換">
+                <div class="radial-item item-1" onclick="openFontModal(); closeSettingsMenu();" title="語言/字體切換">
                     <span class="material-symbols-outlined">translate</span>
                 </div>
                 <div class="radial-item item-2" onclick="alert('主題色調功能開發中...'); closeSettingsMenu();" title="主題色調">
@@ -2250,20 +2250,41 @@
             localStorage.setItem('app_font_index', index);
         }
 
-        // 點擊按鈕切換字體
-        function toggleFont() {
-            currentFontIndex = (currentFontIndex + 1) % fontOptions.length;
-            applyFont(currentFontIndex);
+        // 1. 打開字體選單
+        function openFontModal() {
+            const container = document.getElementById('font-list-container');
+            container.innerHTML = ''; // 清空舊內容
 
-            // 顯示小提示框
-            const toast = document.getElementById('toast-msg');
-            toast.innerText = `已切換：${fontOptions[currentFontIndex].name}`;
-            toast.style.opacity = '1';
+            fontOptions.forEach((font, index) => {
+                const btn = document.createElement('button');
+                btn.innerText = font.name;
+                btn.style.padding = '12px';
+                btn.style.borderRadius = '10px';
+                btn.style.border = 'none';
+                btn.style.background = index === currentFontIndex ? '#d6a5ff' : 'rgba(255,255,255,0.1)';
+                btn.style.color = index === currentFontIndex ? '#2c3e50' : 'white';
+                btn.style.cursor = 'pointer';
+                btn.style.fontFamily = font.family; // 讓選單直接預覽該字體！
 
-            // 2 秒後自動隱藏
-            setTimeout(() => {
-                toast.style.opacity = '0';
-            }, 2000);
+                btn.onclick = () => {
+                    selectFont(index);
+                };
+                container.appendChild(btn);
+            });
+
+            document.getElementById('font-selection-modal').style.display = 'flex';
+        }
+
+        // 2. 選擇並關閉
+        function selectFont(index) {
+            currentFontIndex = index;
+            applyFont(index);
+            closeFontModal();
+        }
+
+        // 3. 關閉彈窗
+        function closeFontModal() {
+            document.getElementById('font-selection-modal').style.display = 'none';
         }
 
         // ================= 前端控制邏輯 =================
@@ -3009,6 +3030,17 @@
                 style="overflow-y: auto; flex: 1; padding-right: 5px; display: flex; flex-direction: column; gap: 10px;">
             </div>
 
+        </div>
+    </div>
+    <div id="font-selection-modal" class="custom-modal"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+        <div
+            style="background:#2c3e50; padding:20px; border-radius:20px; width:80%; max-width:300px; color:white; text-align:center;">
+            <h3 style="margin-top:0;">選擇字體風格</h3>
+            <div id="font-list-container" style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+            </div>
+            <button onclick="closeFontModal()"
+                style="margin-top:20px; padding:10px 20px; background:rgba(255,255,255,0.2); border:none; border-radius:10px; color:white; cursor:pointer;">關閉</button>
         </div>
     </div>
 </body>
