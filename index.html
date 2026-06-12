@@ -2031,31 +2031,45 @@
         async function loadBackgroundByFolder(folderId) {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
+            // 顯示 Loading
             showCustomAlert("⏳", "更新中", "正在更換底圖...");
 
             try {
                 const response = await fetch(`${API_URL}?action=getImagesByFolder&folderId=${folderId}`);
                 const result = await response.json();
 
-                if (result.success) {
-                    // 清除現有的底圖照片
+                // 💡 防呆檢查：確保 result.images 真的存在，且是陣列
+                if (result.success && Array.isArray(result.images)) {
+
+                    // 1. 強制關閉選擇底圖的選單 Modal
+                    const modal = document.getElementById('bg-selection-modal');
+                    if (modal) modal.style.display = 'none';
+
+                    // 2. 清除現有的底圖照片
                     document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
 
-                    // 使用你的渲染函式進行繪製
+                    // 3. 渲染新照片
                     result.images.forEach((url, index) => {
                         renderSinglePic(url, index);
                     });
 
+                    // 4. 顯示成功，並在 1.5 秒後「自動關閉」這個提示窗
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
+                    setTimeout(() => {
+                        const alertBox = document.getElementById('custom-alert');
+                        if (alertBox) alertBox.style.display = 'none';
+                    }, 1500);
+
                 } else {
-                    throw new Error(result.message);
+                    // 如果後端回傳 success: true 但沒有 images，丟出明確的錯誤
+                    throw new Error(result.message || "後端沒有回傳圖片，請確認 GAS 是否有部署『新版本』！");
                 }
             } catch (e) {
                 console.error("更換底圖失敗:", e);
+                // 錯誤時顯示提示窗（不會自動關閉，讓使用者看得到錯誤原因）
                 showCustomAlert("❌", "更換失敗", e.message);
             }
         }
-
 
         // ================= 第一大項-收支報表，控制系統 =================
         // 1. 讀取並渲染報表 (帶有快取機制版)
