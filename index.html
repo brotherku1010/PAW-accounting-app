@@ -829,7 +829,7 @@
                     </div>
                 </div>
 
-                <button id="btn-submit" class="submit-btn" onclick="submitRecord()">💾 儲存紀錄</button>
+                <button id="btn-submit" class="submit-btn" onclick="submitRecord()">花錢咯~</button>
             </div>
         </div>
 
@@ -1482,7 +1482,7 @@
                     // ★ 關鍵修正 1：標記報表與首頁資料全面過期，強迫系統下次重新跟雲端同步
                     isReportDataDirty = true;
 
-                    showCustomAlert("✅", "記帳成功", "您的收支紀錄已寫入雲端！", () => {
+                    showCustomAlert("✅", "記帳成功", "是不是錢又飛走了齁！", () => {
                         document.getElementById('form-expenseAmount').value = '';
                         document.getElementById('form-incomeAmount').value = '';
                         document.getElementById('form-transferAmount').value = '';
@@ -1497,7 +1497,7 @@
             } catch (error) {
                 showCustomAlert("❌", "網路連線錯誤", error.message);
             } finally {
-                btn.innerText = "💾 儲存紀錄";
+                btn.innerText = "花錢咯~";
                 btn.disabled = false;
             }
         }
@@ -1769,7 +1769,7 @@
         // 3. 讀取並渲染提醒清單
         async function loadRemindList() {
             const container = document.getElementById('remind-list-container');
-            container.innerHTML = `<div class="placeholder-box">⏳ 讀取排程中...</div>`;
+            container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomMaskedText()}</div>`;
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             try {
@@ -1825,7 +1825,7 @@
                 return;
             }
 
-            showCustomAlert("⏳", "處理中", "寫入雲端資料庫...");
+            showCustomAlert("⏳", "處理中", "一定是大拇指...");
             const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
             alertButtons.forEach(btn => btn.style.display = 'none');
 
@@ -1844,7 +1844,7 @@
                     document.getElementById('input-remind-amount').value = "";
                     // 新增成功後自動重抓資料，更新清單
                     loadRemindList();
-                    showCustomAlert("✅", "儲存成功", result.message);
+                    showCustomAlert("✅", "有了，威了", result.message);
                 }
             } catch (e) {
                 alertButtons.forEach(btn => btn.style.display = '');
@@ -2640,7 +2640,7 @@
                     const result = await response.json();
                     if (result.success) {
                         isReportDataDirty = true;
-                        showCustomAlert("✅", "刪除成功", "資料已刪除，報表已重新運算！", () => { loadRawData(); });
+                        showCustomAlert("✅", "刪除成功", "散了吧都走散了！", () => { loadRawData(); });
                     } else {
                         showCustomAlert("❌", "刪除失敗", result.message);
                     }
@@ -2673,7 +2673,7 @@
                         // ★ 標記報表與明細快取作廢，確保下次打開能看到最新的計算結果！
                         isReportDataDirty = true;
 
-                        showCustomAlert("✅", "刪除成功", "資料已刪除，報表已重新運算！", () => {
+                        showCustomAlert("✅", "刪除成功", "錯過就是錯過了！", () => {
                             loadRawData(); // 重新讀取畫面
                         });
                     } else {
