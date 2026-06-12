@@ -22,9 +22,11 @@
                 notifyButton: {
                     enable: false,
                 },
-                // ★ 核心修復：指引 OneSignal 前往正確的子資料夾尋找檔案與設定權限範圍
-                serviceWorkerPath: "/PAW-accounting-app/OneSignalSDKWorker.js",
-                serviceWorkerParam: { scope: "/PAW-accounting-app/" }
+                // ★ OneSignal v16 專用的子資料夾設定語法
+                serviceWorker: {
+                    path: "/PAW-accounting-app/OneSignalSDKWorker.js",
+                    scope: "/PAW-accounting-app/"
+                }
             });
         });
     </script>
@@ -1265,11 +1267,18 @@
                 }
                 loadWalletManage();
             }
-            if (pageId === 'page-remind-manage') {
-                // 每次進入提醒頁面，重置表單欄位
-                document.getElementById('input-remind-name').value = "";
-                document.getElementById('input-remind-date').value = "";
-                document.getElementById('input-remind-amount').value = "";
+            // 切換頁面的主函式
+            function switchPage(pageId) {
+                // ... (您原本隱藏所有頁面、顯示目標頁面的程式碼) ...
+
+                // ★ 請確保這段寫在 switchPage 函式的大括號 { } 裡面！
+                if (pageId === 'page-remind-manage') {
+                    // 每次進入提醒頁面，重置表單欄位並抓取最新清單
+                    document.getElementById('input-remind-name').value = "";
+                    document.getElementById('input-remind-date').value = "";
+                    document.getElementById('input-remind-amount').value = "";
+                    loadRemindList(); // 抓取清單
+                }
             }
         }
 
@@ -1688,12 +1697,6 @@
             });
         }
         // ================= 提醒通知系統核心邏輯 =================
-
-        // 切換進入提醒頁面時，自動抓取資料
-        if (pageId === 'page-remind-manage') {
-            loadRemindList();
-        }
-
         // 1. 推播授權
         function triggerPushSubscription() {
             window.OneSignalDeferred.push(function (OneSignal) {
