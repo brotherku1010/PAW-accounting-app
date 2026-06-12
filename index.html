@@ -1546,22 +1546,27 @@
             }
         }
         // 負責產生單張圖片並添加到畫面的小函式
+        // 負責產生單張圖片並添加到畫面的小函式
         function renderSinglePic(imgUrl, index) {
             const container = document.querySelector('.app-container');
 
-            // 💡 防呆：如果找不到容器，直接終止，避免繼續執行導致崩潰
+            // 防呆：如果找不到容器，直接終止
             if (!container) {
                 console.error("找不到 .app-container 容器，無法渲染圖片");
                 return;
             }
 
+            // 💡 補上這行！判斷是否為手機版螢幕
+            const isMobile = window.innerWidth < 768;
+
             const picImg = document.createElement('img');
             picImg.src = imgUrl;
             picImg.className = 'random-pic';
             picImg.style.pointerEvents = 'none';
-            picImg.style.position = 'absolute'; // 確保它是相對於容器定位的
+            picImg.style.position = 'absolute'; // 確保定位正確
+            picImg.style.zIndex = '0';          // 確保圖片在後方不擋住按鈕
 
-            // 尺寸設定
+            // 尺寸設定 (根據 isMobile 動態調整)
             const baseSize = isMobile
                 ? Math.floor(Math.random() * 60 + 160)
                 : Math.floor(Math.random() * 80 + 200);
@@ -1582,6 +1587,8 @@
 
             container.appendChild(picImg);
         }
+
+
         // 1. 開關編輯模式
         function toggleWalletEditMode() {
             isWalletEditMode = !isWalletEditMode;
@@ -1979,50 +1986,42 @@
         }
         // ================= 底圖切換系統(主函式)================= 
         // 1. 觸發選單：取得所有子資料夾 (分類)
+        // 1. 觸發選單：取得所有子資料夾 (分類)
         async function triggerChangeBackground() {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
-            // 1. 強制檢查 Modal 是否存在
+            // 💡 呼叫時帶入 ⏳，第一步的魔法邏輯就會把按鈕藏起來
+            showCustomAlert("⏳", "讀取中", "正在掃描雲端分類...");
+
             const modal = document.getElementById('bg-selection-modal');
             const container = document.getElementById('album-list-container');
-
-            if (!modal) {
-                console.error("致命錯誤：在 HTML 中找不到 ID 為 'bg-selection-modal' 的元素！請檢查 index.html。");
-                return;
-            }
-            if (!container) {
-                console.error("致命錯誤：在 HTML 中找不到 ID 為 'album-list-container' 的元素！");
-                return;
-            }
-
-            showCustomAlert("⏳", "讀取中", "正在掃描雲端分類...");
+            if (!modal || !container) return;
 
             try {
                 const response = await fetch(API_URL + "?action=getAlbumList");
                 const result = await response.json();
 
                 if (result.success) {
-                    container.innerHTML = ''; // 清空舊內容
+                    container.innerHTML = '';
 
                     result.albums.forEach(album => {
                         const btn = document.createElement('button');
                         btn.innerText = album.name;
                         btn.style.cssText = "padding: 12px; border-radius: 10px; border: none; background: rgba(255,255,255,0.1); color: white; cursor: pointer; margin-bottom: 5px;";
                         btn.onclick = () => {
-                            loadBackgroundByFolder(album.id);
-                            modal.style.display = 'none';
+                            loadBackgroundByFolder(album.id); // 點擊分類，開始換圖
+                            modal.style.display = 'none'; // 關閉選單
                         };
                         container.appendChild(btn);
                     });
 
-                    // 隱藏 alert 並顯示選單
+                    // ★ 核心動作：資料到了，強制關閉剛剛的「讀取中」視窗
                     const alertBox = document.getElementById('custom-alert');
                     if (alertBox) alertBox.style.display = 'none';
 
-                    modal.style.display = 'flex'; // 成功打開選單
+                    modal.style.display = 'flex'; // 成功打開分類選單
                 }
             } catch (e) {
-                console.error("讀取失敗:", e);
                 showCustomAlert("❌", "讀取失敗", "無法連接伺服器");
             }
         }
@@ -2031,46 +2030,34 @@
         async function loadBackgroundByFolder(folderId) {
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
-            // 顯示 Loading
-            showCustomAlert("⏳", "更新中", "正在更換底圖...");
+            // 💡 再次呼叫 ⏳，按鈕一樣會被隱藏
+            showCustomAlert("⏳", "更新中", "正在下載圖片...");
 
             try {
                 const response = await fetch(`${API_URL}?action=getImagesByFolder&folderId=${folderId}`);
                 const result = await response.json();
 
-                // 💡 防呆檢查：確保 result.images 真的存在，且是陣列
                 if (result.success && Array.isArray(result.images)) {
-
-                    // 1. 強制關閉選擇底圖的選單 Modal
-                    const modal = document.getElementById('bg-selection-modal');
-                    if (modal) modal.style.display = 'none';
-
-                    // 2. 清除現有的底圖照片
                     document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
 
-                    // 3. 渲染新照片
-                    result.images.forEach((url, index) => {
-                        renderSinglePic(url, index);
-                    });
+                    result.images.forEach((url, index) => renderSinglePic(url, index));
 
-                    // 4. 顯示成功，並在 1.5 秒後「自動關閉」這個提示窗
+                    // ★ 核心動作：換圖成功，顯示 ✅，第一步的邏輯會把確認按鈕重新秀出來！
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
+
+                    // 💡 貼心優化：1.5秒後連這個成功視窗都幫使用者自動關掉
                     setTimeout(() => {
-                        const alertBox = document.getElementById('custom-alert');
+                        const alertBox = document.getElementById('custom-alert-modal');
                         if (alertBox) alertBox.style.display = 'none';
                     }, 1500);
 
                 } else {
-                    // 如果後端回傳 success: true 但沒有 images，丟出明確的錯誤
-                    throw new Error(result.message || "後端沒有回傳圖片，請確認 GAS 是否有部署『新版本』！");
+                    throw new Error(result.message || "發生未知錯誤");
                 }
             } catch (e) {
-                console.error("更換底圖失敗:", e);
-                // 錯誤時顯示提示窗（不會自動關閉，讓使用者看得到錯誤原因）
-                showCustomAlert("❌", "更換失敗", e.message);
+                showCustomAlert("❌", "更換失敗", e.message); // 失敗時顯示按鈕讓使用者關閉
             }
         }
-
         // ================= 第一大項-收支報表，控制系統 =================
         // 1. 讀取並渲染報表 (帶有快取機制版)
         async function loadReport() {
@@ -2410,6 +2397,14 @@
             document.getElementById('alert-desc').innerText = desc;
 
             const btn = document.getElementById('alert-btn');
+
+            // ★ 魔法邏輯：如果是讀取中 (⏳)，就隱藏按鈕；否則恢復顯示
+            if (icon === "⏳") {
+                btn.style.display = 'none';
+            } else {
+                btn.style.display = 'inline-block'; // 恢復顯示按鈕
+            }
+
             btn.onclick = () => {
                 document.getElementById('custom-alert-modal').style.display = 'none';
                 if (callback) callback(); // 如果有傳入後續動作，就在關閉視窗後執行
