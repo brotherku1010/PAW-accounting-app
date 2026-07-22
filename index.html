@@ -704,6 +704,10 @@
                     <span class="material-symbols-outlined">database</span>
                     <span class="text">原始資料</span>
                 </div>
+                <div class="menu-item" onclick="switchPage('page-credit-card')">
+                    <span class="material-symbols-outlined">credit_card</span>
+                    <span class="text">信用卡消費</span>
+                </div>
             </div>
         </div>
         <div id="page-add" class="page">
@@ -905,6 +909,37 @@
 
             <div id="raw-data-pagination"
                 style="display: flex; justify-content: space-between; align-items: center; margin-top: 25px; padding: 10px 5px; border-top: 1px solid rgba(255,255,255,0.05);">
+            </div>
+        </div>
+        <div id="page-credit-card" class="page">
+            <div class="page-header">
+                <div class="back-btn" onclick="switchPage('page-home')">❮</div>
+                <h2>信用卡消費</h2>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 18px;">
+                <label for="credit-card-month">選擇月份</label>
+                <input id="credit-card-month" type="month" onchange="changeCreditCardMonth(this.value)">
+            </div>
+            <div id="credit-card-summary"></div>
+            <div id="credit-card-container">
+                <div class="placeholder-box">等待載入信用卡消費...</div>
+            </div>
+        </div>
+        <div id="credit-card-edit-modal"
+            style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,.68); padding:24px 18px; align-items:center; justify-content:center;">
+            <div style="width:min(100%, 420px); max-height:90vh; overflow:auto; background:#20202d; border:1px solid var(--card-border); border-radius:20px; padding:22px; box-shadow:0 20px 50px rgba(0,0,0,.45);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+                    <h3 style="margin:0; font-size:20px;">編輯信用卡消費</h3>
+                    <button onclick="closeCreditCardEdit()" aria-label="關閉"
+                        style="border:0; background:transparent; color:var(--text-muted); font-size:26px; cursor:pointer;">×</button>
+                </div>
+                <input id="credit-card-edit-id" type="hidden">
+                <div class="form-group"><label for="credit-card-edit-date">日期</label><input id="credit-card-edit-date" type="date"></div>
+                <div class="form-group"><label for="credit-card-edit-amount">金額</label><input id="credit-card-edit-amount" type="number" min="1" step="1"></div>
+                <div class="form-group"><label for="credit-card-edit-note">備註</label><input id="credit-card-edit-note" type="text" maxlength="200"></div>
+                <div style="font-size:12px; color:var(--text-muted); margin:-4px 0 16px;">支付類型與帳目類型固定為「信用卡／信用消費」。</div>
+                <button class="submit-btn" onclick="saveCreditCardRecord()">儲存變更</button>
             </div>
         </div>
         <div id="toast-msg"
@@ -1273,7 +1308,10 @@
                 loadRawData();
             }
 
-            // E. 返回或前往「主畫面首頁」
+            // E. 前往信用卡消費
+            if (pageId === 'page-credit-card') loadCreditCardRecords();
+
+            // F. 返回或前往「主畫面首頁」
             if (pageId === 'page-home') {
                 // 如果剛新增完記帳或刪除過資料 (Dirty === true)，在返回首頁時，強制在背景發起靜態更新
                 if (isReportDataDirty) {
@@ -2728,6 +2766,136 @@
 
         function closeConfirmModal() {
             document.getElementById('confirm-modal').style.display = 'none';
+        }
+
+        // ================= 信用卡消費控制系統 =================
+        const CREDIT_CARD_API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+        let cachedCreditCardRecords = [];
+        let creditCardSelectedMonth = "";
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            })[char]);
+        }
+
+        async function loadCreditCardRecords() {
+            const container = document.getElementById('credit-card-container');
+            const summary = document.getElementById('credit-card-summary');
+            const monthInput = document.getElementById('credit-card-month');
+            if (!container || !summary || !monthInput) return;
+            container.innerHTML = '<div class="placeholder-box">⏳ 載入信用卡消費中...</div>';
+            summary.innerHTML = '';
+
+            try {
+                const response = await fetch(CREDIT_CARD_API_URL + '?action=getCreditCardRecords');
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || '讀取失敗');
+
+                cachedCreditCardRecords = result.data || [];
+                const months = result.months || [];
+                if (!creditCardSelectedMonth || !months.includes(creditCardSelectedMonth)) {
+                    creditCardSelectedMonth = months[0] || new Date().toISOString().slice(0, 7);
+                }
+                monthInput.value = creditCardSelectedMonth;
+                renderCreditCardRecords();
+            } catch (error) {
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 無法讀取信用卡消費：${escapeHtml(error.message)}</div>`;
+            }
+        }
+
+        function changeCreditCardMonth(month) {
+            creditCardSelectedMonth = month;
+            renderCreditCardRecords();
+        }
+
+        function renderCreditCardRecords() {
+            const container = document.getElementById('credit-card-container');
+            const summary = document.getElementById('credit-card-summary');
+            if (!container || !summary) return;
+            const records = cachedCreditCardRecords.filter(record => record.month === creditCardSelectedMonth);
+            const total = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+
+            summary.innerHTML = `
+                <div class="balance-card" style="margin-bottom:18px; padding:18px 20px; text-align:left;">
+                    <div class="title">${escapeHtml(creditCardSelectedMonth || '本月')} 信用卡消費</div>
+                    <div class="amount" style="font-size:34px; margin:4px 0 0;">$ ${total.toLocaleString('zh-TW')}</div>
+                    <div style="font-size:13px; opacity:.75;">共 ${records.length} 筆消費</div>
+                </div>`;
+
+            if (!records.length) {
+                container.innerHTML = '<div class="placeholder-box">這個月份沒有信用卡消費資料。</div>';
+                return;
+            }
+
+            container.innerHTML = records.map(record => `
+                <div style="background:var(--card-bg); border:1px solid var(--card-border); border-radius:16px; padding:16px; margin-bottom:12px;">
+                    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px;">
+                        <div>
+                            <div style="color:#d6a5ff; font-size:13px; font-family:monospace;">${escapeHtml(record.date)}</div>
+                            <div style="font-size:16px; font-weight:700; margin-top:5px; word-break:break-word;">${escapeHtml(record.note || '未填寫備註')}</div>
+                        </div>
+                        <div style="color:#ff9d9d; font-size:19px; font-weight:700; font-family:monospace; white-space:nowrap;">$ ${Number(record.amount || 0).toLocaleString('zh-TW')}</div>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end;">
+                        <button onclick="openCreditCardEdit('${escapeHtml(record.id)}')" style="border:1px solid rgba(214,165,255,.45); background:rgba(214,165,255,.12); color:#e4c5ff; border-radius:9px; padding:7px 11px; cursor:pointer;">編輯</button>
+                        <button onclick="deleteCreditCardRecord('${escapeHtml(record.id)}')" style="border:1px solid rgba(255,118,117,.45); background:rgba(255,118,117,.1); color:#ff9d9d; border-radius:9px; padding:7px 11px; cursor:pointer;">刪除</button>
+                    </div>
+                </div>`).join('');
+        }
+
+        function openCreditCardEdit(id) {
+            const record = cachedCreditCardRecords.find(item => item.id === id);
+            if (!record) return;
+            document.getElementById('credit-card-edit-id').value = record.id;
+            document.getElementById('credit-card-edit-date').value = record.date;
+            document.getElementById('credit-card-edit-amount').value = record.amount;
+            document.getElementById('credit-card-edit-note').value = record.note || '';
+            document.getElementById('credit-card-edit-modal').style.display = 'flex';
+        }
+
+        function closeCreditCardEdit() {
+            document.getElementById('credit-card-edit-modal').style.display = 'none';
+        }
+
+        async function saveCreditCardRecord() {
+            const id = document.getElementById('credit-card-edit-id').value;
+            const date = document.getElementById('credit-card-edit-date').value;
+            const amount = document.getElementById('credit-card-edit-amount').value;
+            const note = document.getElementById('credit-card-edit-note').value.trim();
+            if (!date || !amount || Number(amount) <= 0) {
+                showCustomAlert('⚠️', '請確認資料', '日期與大於 0 的金額都是必填。');
+                return;
+            }
+            try {
+                const response = await fetch(CREDIT_CARD_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'updateCreditCardRecord', id, date, amount, note })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || '更新失敗');
+                closeCreditCardEdit();
+                isReportDataDirty = true;
+                showCustomAlert('✅', '更新成功', '信用卡消費已更新。', loadCreditCardRecords);
+            } catch (error) {
+                showCustomAlert('❌', '更新失敗', error.message);
+            }
+        }
+
+        async function deleteCreditCardRecord(id) {
+            if (!window.confirm('確定要刪除這筆信用卡消費嗎？此操作無法復原。')) return;
+            try {
+                const response = await fetch(CREDIT_CARD_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'deleteCreditCardRecord', id })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || '刪除失敗');
+                isReportDataDirty = true;
+                showCustomAlert('✅', '刪除成功', '信用卡消費已刪除。', loadCreditCardRecords);
+            } catch (error) {
+                showCustomAlert('❌', '刪除失敗', error.message);
+            }
         }
 
         // ================= 原始資料控制系統 =================
