@@ -4,15 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#20202c">
+    <meta name="theme-color" content="#12121a">
+    <link rel="manifest" href="cardholder-manifest.json">
     <title>信用卡附卡明細</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root { color-scheme: dark; --bg:#12121a; --card:#20202c; --line:rgba(255,255,255,.1); --muted:#aeb1bd; --accent:#d6a5ff; }
         * { box-sizing:border-box; }
-        body { margin:0; min-height:100vh; color:#fff; background:radial-gradient(circle at 80% 0, rgba(159,53,255,.17), transparent 32%), var(--bg); font-family:"Noto Sans TC",sans-serif; }
+        body { margin:0; min-height:100vh; color:#fff; background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft JhengHei",sans-serif; }
         main { width:min(100%, 760px); margin:0 auto; padding:24px 16px 48px; }
         h1 { margin:0; font-size:25px; }
         .sub { margin:6px 0 22px; color:var(--muted); font-size:14px; }
@@ -33,6 +31,13 @@
         th { color:var(--muted); font-size:12px; font-weight:500; white-space:nowrap; }
         tr:last-child td { border-bottom:0; }
         td { word-break:break-word; }
+        #app-lock { position:fixed; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:20px; background:var(--bg); }
+        #app-lock .lock-card { width:min(100%,360px); padding:26px; border:1px solid var(--line); border-radius:18px; background:var(--card); text-align:center; }
+        #app-lock h2 { margin:0 0 8px; font-size:22px; }
+        #app-lock p { margin:0 0 20px; color:var(--muted); font-size:14px; }
+        #app-lock input { width:100%; height:46px; border:1px solid var(--line); border-radius:10px; background:#14141d; color:#fff; padding:0 12px; text-align:center; letter-spacing:4px; font-size:20px; margin-bottom:12px; }
+        #lock-error { min-height:20px; margin:10px 0 0; color:#ff9999; font-size:13px; }
+        .logout { width:auto; min-height:32px; padding:0 10px; background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; }
         .message { padding:36px 16px; color:var(--muted); text-align:center; }
         .error { color:#ff9999; }
         @media (max-width:480px) { main { padding:20px 12px 40px; } .controls { grid-template-columns:1fr 1fr; } .controls button { grid-column:1 / -1; } }
@@ -41,7 +46,10 @@
 
 <body>
     <main>
-        <h1>信用卡附卡明細</h1>
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+            <h1>信用卡附卡明細</h1>
+            <button class="logout" onclick="lockApp()">登出</button>
+        </div>
         <p class="sub">可查看當月使用明細，並切換要查看的年份與月份。</p>
 
         <section class="controls" aria-label="年月選擇">
@@ -53,12 +61,22 @@
         <section id="summary" class="summary"><div class="summary-label">本月已使用額度</div><div class="summary-value">—</div></section>
         <section class="table-card"><div id="details" class="message">正在載入附卡明細...</div></section>
     </main>
+    <div id="app-lock">
+        <div class="lock-card">
+            <h2>PAW 附卡額度</h2>
+            <p>請輸入進入密碼後查看消費金額。</p>
+            <input id="app-password" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="進入密碼">
+            <button onclick="unlockApp()">進入</button>
+            <div id="lock-error" role="alert"></div>
+        </div>
+    </div>
 
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec';
         const yearSelect = document.getElementById('selected-year');
         const monthSelect = document.getElementById('selected-month');
         const applyButton = document.getElementById('apply-button');
+        const APP_PASSWORD = '1973';
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char]);
@@ -134,7 +152,34 @@
             }
         }
 
-        loadDetails();
+        function unlockApp() {
+            const input = document.getElementById('app-password');
+            if (input.value !== APP_PASSWORD) {
+                document.getElementById('lock-error').textContent = '密碼不正確，請再試一次。';
+                input.select();
+                return;
+            }
+            sessionStorage.setItem('paw-cardholder-unlocked', 'true');
+            document.getElementById('app-lock').style.display = 'none';
+            loadDetails();
+        }
+
+        function lockApp() {
+            sessionStorage.removeItem('paw-cardholder-unlocked');
+            document.getElementById('app-password').value = '';
+            document.getElementById('lock-error').textContent = '';
+            document.getElementById('app-lock').style.display = 'flex';
+        }
+
+        document.getElementById('app-password').addEventListener('keydown', event => {
+            if (event.key === 'Enter') unlockApp();
+        });
+
+        if (sessionStorage.getItem('paw-cardholder-unlocked') === 'true') {
+            document.getElementById('app-lock').style.display = 'none';
+            loadDetails();
+        }
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('./cardholder-sw.js');
     </script>
 </body>
 

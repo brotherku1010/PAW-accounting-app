@@ -1,0 +1,10 @@
+{
+  "name": "PAW 附卡額度",
+  "short_name": "PAW 附卡",
+  "start_url": "./cardholder.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#12121a",
+  "theme_color": "#12121a",
+  "description": "查看 PAW 信用卡附卡消費額度與明細。"
+}
