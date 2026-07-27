@@ -21,7 +21,9 @@
         select { background:#14141d; color:#fff; border:1px solid var(--line); padding:0 10px; }
         button { border:0; cursor:pointer; padding:0 16px; background:linear-gradient(135deg,#a158e8,#7139b7); color:#fff; font-weight:700; white-space:nowrap; }
         button:disabled { opacity:.6; cursor:wait; }
-        .summary { padding:17px 18px; margin-bottom:16px; }
+        .summary { display:grid; grid-template-columns:repeat(3, 1fr); gap:0; padding:0; margin-bottom:16px; overflow:hidden; }
+        .summary-item { padding:17px 18px; }
+        .summary-item + .summary-item { border-left:1px solid var(--line); }
         .summary-label { color:var(--muted); font-size:13px; }
         .summary-value { font-size:31px; font-weight:700; font-family:monospace; margin-top:4px; color:var(--accent); }
         .summary-note { color:var(--muted); font-size:13px; margin-top:3px; }
@@ -40,7 +42,7 @@
         .logout { width:auto; min-height:32px; padding:0 10px; background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; }
         .message { padding:36px 16px; color:var(--muted); text-align:center; }
         .error { color:#ff9999; }
-        @media (max-width:480px) { main { padding:20px 12px 40px; } .controls { grid-template-columns:1fr 1fr; } .controls button { grid-column:1 / -1; } }
+        @media (max-width:480px) { main { padding:20px 12px 40px; } .controls { grid-template-columns:1fr 1fr; } .controls button { grid-column:1 / -1; } .summary { grid-template-columns:1fr; } .summary-item + .summary-item { border-left:0; border-top:1px solid var(--line); } }
     </style>
 </head>
 
@@ -58,7 +60,11 @@
             <button id="apply-button" onclick="applyOptions()">套用</button>
         </section>
 
-        <section id="summary" class="summary"><div class="summary-label">本月已使用額度</div><div class="summary-value">—</div></section>
+        <section id="summary" class="summary">
+            <div class="summary-item"><div class="summary-label">本月刷卡總額度</div><div class="summary-value">—</div></div>
+            <div class="summary-item"><div class="summary-label">本月已繳金額</div><div class="summary-value">—</div></div>
+            <div class="summary-item"><div class="summary-label">本月待繳金額</div><div class="summary-value">—</div></div>
+        </section>
         <section class="table-card"><div id="details" class="message">正在載入附卡明細...</div></section>
     </main>
     <div id="app-lock">
@@ -82,6 +88,11 @@
             return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char]);
         }
 
+        function toAmount(value) {
+            const amount = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+            return Number.isFinite(amount) ? amount : 0;
+        }
+
         function setOptions(year, month) {
             const currentYear = new Date().getFullYear();
             const selectedYear = Number(year) || currentYear;
@@ -102,9 +113,29 @@
             const summary = document.getElementById('summary');
             const headers = (result.headers || []).map((header, index) => ({ header:String(header).trim(), index })).filter(item => item.header);
             const rows = result.data || [];
-            const amountColumn = headers.find(item => item.header === '金額');
-            const total = amountColumn ? rows.reduce((sum, row) => sum + Number(String(row[amountColumn.index] || 0).replace(/,/g, '')), 0) : 0;
-            summary.innerHTML = `<div class="summary-label">${escapeHtml(result.options.year)} 年 ${escapeHtml(result.options.month)} 月已使用額度</div><div class="summary-value">$ ${total.toLocaleString('zh-TW')}</div><div class="summary-note">${rows.length} 筆消費明細</div>`;
+            const summaryLabels = ['本月刷卡總額度', '本月已繳金額', '本月待繳金額'];
+            const summaryValues = summaryLabels.map(label => {
+                const column = headers.find(item => item.header === label);
+                const row = column ? rows.find(item => String(item[column.index] ?? '').trim() !== '') : null;
+                return toAmount(row && column ? row[column.index] : 0);
+            });
+            const detailHeaders = headers.filter(item => !summaryLabels.includes(item.header));
+            summary.innerHTML = `
+                <div class="summary-item">
+                    <div class="summary-label">本月刷卡總額度</div>
+                    <div class="summary-value">$ ${summaryValues[0].toLocaleString('zh-TW')}</div>
+                    <div class="summary-note">${escapeHtml(result.options.year)} 年 ${escapeHtml(result.options.month)} 月</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">本月已繳金額</div>
+                    <div class="summary-value">$ ${summaryValues[1].toLocaleString('zh-TW')}</div>
+                    <div class="summary-note">${escapeHtml(result.options.year)} 年 ${escapeHtml(result.options.month)} 月</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-label">本月待繳金額</div>
+                    <div class="summary-value">$ ${summaryValues[2].toLocaleString('zh-TW')}</div>
+                    <div class="summary-note">${escapeHtml(result.options.year)} 年 ${escapeHtml(result.options.month)} 月</div>
+                </div>`;
 
             if (!rows.length) {
                 details.className = 'message';
@@ -112,7 +143,7 @@
                 return;
             }
             details.className = '';
-            details.innerHTML = `<table><thead><tr>${headers.map(item => `<th>${escapeHtml(item.header)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${headers.map(item => `<td>${escapeHtml(row[item.index])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+            details.innerHTML = `<table><thead><tr>${detailHeaders.map(item => `<th>${escapeHtml(item.header)}</th>`).join('')}</tr></thead><tbody>${rows.map(row => `<tr>${detailHeaders.map(item => `<td>${escapeHtml(row[item.index])}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
         }
 
         async function loadDetails() {

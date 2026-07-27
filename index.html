@@ -2772,11 +2772,35 @@
         const CREDIT_CARD_API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
         let cachedCreditCardRecords = [];
         let creditCardSelectedMonth = "";
+        let cachedSupplementaryCardSummary = null;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>'"]/g, char => ({
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
             })[char]);
+        }
+
+        function toCreditCardAmount(value) {
+            const amount = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
+            return Number.isFinite(amount) ? amount : 0;
+        }
+
+        function readSupplementaryCardSummary(result) {
+            const labels = ['本月刷卡總額度', '本月已繳金額', '本月待繳金額'];
+            const headers = (result.headers || []).map((header, index) => ({ header: String(header).trim(), index }));
+            const rows = result.data || [];
+            const values = labels.map(label => {
+                const column = headers.find(item => item.header === label);
+                const row = column ? rows.find(item => String(item[column.index] ?? '').trim() !== '') : null;
+                return toCreditCardAmount(row && column ? row[column.index] : 0);
+            });
+            return {
+                year: result.options?.year || '',
+                month: result.options?.month || '',
+                chargeAmount: values[0],
+                paidAmount: values[1],
+                outstandingAmount: values[2]
+            };
         }
 
         async function loadCreditCardRecords() {
@@ -2788,11 +2812,18 @@
             summary.innerHTML = '';
 
             try {
-                const response = await fetch(CREDIT_CARD_API_URL + '?action=getCreditCardRecords');
-                const result = await response.json();
+                const [recordsResponse, supplementaryResponse] = await Promise.all([
+                    fetch(CREDIT_CARD_API_URL + '?action=getCreditCardRecords'),
+                    fetch(CREDIT_CARD_API_URL + '?action=getSupplementaryCardDetails')
+                ]);
+                const result = await recordsResponse.json();
+                const supplementaryResult = await supplementaryResponse.json();
                 if (!result.success) throw new Error(result.message || '讀取失敗');
 
                 cachedCreditCardRecords = result.data || [];
+                cachedSupplementaryCardSummary = supplementaryResult.success
+                    ? readSupplementaryCardSummary(supplementaryResult)
+                    : null;
                 const months = result.months || [];
                 if (!creditCardSelectedMonth || !months.includes(creditCardSelectedMonth)) {
                     creditCardSelectedMonth = months[0] || new Date().toISOString().slice(0, 7);
@@ -2814,13 +2845,32 @@
             const summary = document.getElementById('credit-card-summary');
             if (!container || !summary) return;
             const records = cachedCreditCardRecords.filter(record => record.month === creditCardSelectedMonth);
-            const total = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+            const fallbackTotal = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
+            const sheetSummary = cachedSupplementaryCardSummary || {
+                year: '', month: '', chargeAmount: fallbackTotal, paidAmount: 0, outstandingAmount: fallbackTotal
+            };
+            const summaryMonth = sheetSummary.year && sheetSummary.month
+                ? `${sheetSummary.year} 年 ${sheetSummary.month} 月`
+                : creditCardSelectedMonth;
 
             summary.innerHTML = `
                 <div class="balance-card" style="margin-bottom:18px; padding:18px 20px; text-align:left;">
-                    <div class="title">${escapeHtml(creditCardSelectedMonth || '本月')} 信用卡消費</div>
-                    <div class="amount" style="font-size:34px; margin:4px 0 0;">$ ${total.toLocaleString('zh-TW')}</div>
-                    <div style="font-size:13px; opacity:.75;">共 ${records.length} 筆消費</div>
+                    <div class="title">${escapeHtml(summaryMonth)} 信用卡附卡摘要</div>
+                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">
+                        <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
+                            <div style="font-size:11px; opacity:.72;">本月刷卡總額度</div>
+                            <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${sheetSummary.chargeAmount.toLocaleString('zh-TW')}</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
+                            <div style="font-size:11px; opacity:.72;">本月已繳金額</div>
+                            <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${sheetSummary.paidAmount.toLocaleString('zh-TW')}</div>
+                        </div>
+                        <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
+                            <div style="font-size:11px; opacity:.72;">本月待繳金額</div>
+                            <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${sheetSummary.outstandingAmount.toLocaleString('zh-TW')}</div>
+                        </div>
+                    </div>
+                    <div style="font-size:13px; opacity:.75; margin-top:10px;">消費明細篩選：${escapeHtml(creditCardSelectedMonth || '本月')}，共 ${records.length} 筆</div>
                 </div>`;
 
             if (!records.length) {

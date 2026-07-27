@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paw-cardholder-v2';
+const CACHE_NAME = 'paw-cardholder-v4';
 const APP_SHELL = [
   './cardholder.html',
   './cardholder-manifest.json'
