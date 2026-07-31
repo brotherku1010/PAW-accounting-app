@@ -52,7 +52,7 @@
             <h1>信用卡附卡明細</h1>
             <button class="logout" onclick="lockApp()">登出</button>
         </div>
-        <p class="sub">可查看當月使用明細，並切換要查看的年份與月份。</p>
+        <p class="sub">可查看指定帳單期的使用明細，並切換要查看的年份與月份。</p>
 
         <section class="controls" aria-label="年月選擇">
             <div><label for="selected-year">選擇年份</label><select id="selected-year"></select></div>
@@ -119,7 +119,7 @@
                 const row = column ? rows.find(item => String(item[column.index] ?? '').trim() !== '') : null;
                 return toAmount(row && column ? row[column.index] : 0);
             });
-            const detailHeaders = headers.filter(item => !summaryLabels.includes(item.header));
+            const detailHeaders = headers.filter(item => ![...summaryLabels, '上月未繳'].includes(item.header));
             summary.innerHTML = `
                 <div class="summary-item">
                     <div class="summary-label">本月刷卡總額度</div>

@@ -753,10 +753,28 @@
                             <option value="儲蓄投資">儲蓄投資</option>
                             <option value="娛樂">娛樂</option>
                             <option value="奉獻">奉獻</option>
-                            <option value="信用消費(副卡)">信用消費</option>
-                            <option value="正卡繳費">正卡繳費</option>
-                            <option value="副卡繳費">副卡繳費</option>
+                            <option value="信用消費">信用消費</option>
+                            <option value="信用消費(副卡)">信用消費(副卡)</option>
+                            <option value="信用卡繳款">信用卡繳款</option>
                         </select>
+                    </div>
+
+                    <div id="fg-cardAction" class="form-group" style="display: block;">
+                        <label>信用卡動作</label>
+                        <select id="form-cardAction" onchange="configureCreditCardAction()">
+                            <option value="">一般記帳（非信用卡）</option>
+                            <option value="正卡刷卡">正卡刷卡</option>
+                            <option value="副卡刷卡">副卡刷卡</option>
+                            <option value="副卡收款">副卡收款（父母匯款）</option>
+                            <option value="正卡繳費">正卡繳費（繳給國泰）</option>
+                            <option value="副卡繳費">副卡繳費（繳給國泰）</option>
+                        </select>
+                    </div>
+
+                    <div id="fg-billPeriod" class="form-group" style="display: none;">
+                        <label>歸屬帳單期</label>
+                        <input id="form-billPeriod" type="month">
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">副卡收款與繳給國泰時請選擇要對應的帳單期；刷卡消費則依截止日自動歸類。</div>
                     </div>
 
                     <div id="fg-paymentType" class="form-group" style="display: block;">
@@ -920,10 +938,17 @@
                 <h2>信用卡消費</h2>
             </div>
 
-            <div class="form-group" style="margin-bottom: 18px;">
-                <label for="credit-card-month">選擇月份</label>
-                <input id="credit-card-month" type="month" onchange="changeCreditCardMonth(this.value)">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
+                <div class="form-group" style="margin:0;">
+                    <label for="credit-card-month">查看帳單期</label>
+                    <input id="credit-card-month" type="month" onchange="changeCreditCardMonth(this.value)">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label for="credit-card-cutoff">結帳截止日</label>
+                    <input id="credit-card-cutoff" type="number" min="1" max="31" inputmode="numeric" placeholder="例如 27">
+                </div>
             </div>
+            <button class="submit-btn" style="margin: -4px 0 18px;" onclick="saveCreditCardBillingSettings()">儲存截止日設定</button>
             <div id="credit-card-summary"></div>
             <div id="credit-card-container">
                 <div class="placeholder-box">等待載入信用卡消費...</div>
@@ -1435,6 +1460,10 @@
                 ['fg-category', 'fg-paymentType', 'fg-incomeAccount', 'fg-expenseAmount', 'fg-incomeAmount'].forEach(id => {
                     document.getElementById(id).style.display = 'none';
                 });
+                document.getElementById('fg-cardAction').style.display = 'block';
+                const cardAction = document.getElementById('form-cardAction').value;
+                document.getElementById('fg-billPeriod').style.display =
+                    ['副卡收款', '正卡繳費', '副卡繳費'].includes(cardAction) ? 'block' : 'none';
 
                 // 依據收支類型顯示對應欄位
                 if (ieType === '支出') {
@@ -1450,6 +1479,31 @@
                     document.getElementById('fg-incomeAmount').style.display = 'block';
                 }
             }
+        }
+
+        function configureCreditCardAction() {
+            const action = document.getElementById('form-cardAction').value;
+            const category = document.getElementById('form-category');
+            const paymentType = document.getElementById('form-paymentType');
+            const billPeriod = document.getElementById('form-billPeriod');
+
+            if (action === '正卡刷卡') {
+                setIEType('支出');
+                paymentType.value = '信用卡(正)';
+            } else if (action === '副卡刷卡') {
+                setIEType('支出');
+                category.value = '信用消費(副卡)';
+                paymentType.value = '信用卡(副)';
+            } else if (action === '副卡收款') {
+                setIEType('還款收入');
+                category.value = '信用消費(副卡)';
+            } else if (action === '正卡繳費' || action === '副卡繳費') {
+                setIEType('支出');
+                category.value = '信用卡繳款';
+            }
+
+            if (action && !billPeriod.value) billPeriod.value = new Date().toISOString().slice(0, 7);
+            updateFormVisibility();
         }
 
         // 3.將資料打包並送出給 GAS
@@ -1473,6 +1527,32 @@
             } else {
                 payload.incomeExpenseType = document.getElementById('form-incomeExpenseType').value;
                 payload.note = document.getElementById('form-note').value;
+                payload.cardAction = document.getElementById('form-cardAction').value;
+                payload.billPeriod = document.getElementById('form-billPeriod').value;
+
+                if (!payload.date) return alert("請選擇日期！");
+                if (payload.cardAction === '正卡刷卡') {
+                    payload.incomeExpenseType = '支出';
+                    document.getElementById('form-paymentType').value = '信用卡(正)';
+                    const mainCardCategories = ['生活費', '必要支出', '儲蓄投資', '娛樂', '奉獻'];
+                    if (!mainCardCategories.includes(document.getElementById('form-category').value)) {
+                        return alert("正卡刷卡請選擇：生活費、必要支出、儲蓄投資、娛樂或奉獻。");
+                    }
+                } else if (payload.cardAction === '副卡刷卡') {
+                    payload.incomeExpenseType = '支出';
+                    document.getElementById('form-category').value = '信用消費(副卡)';
+                    document.getElementById('form-paymentType').value = '信用卡(副)';
+                } else if (payload.cardAction === '副卡收款') {
+                    payload.incomeExpenseType = '還款收入';
+                    document.getElementById('form-category').value = '信用消費(副卡)';
+                } else if (payload.cardAction === '正卡繳費' || payload.cardAction === '副卡繳費') {
+                    payload.incomeExpenseType = '支出';
+                    document.getElementById('form-category').value = '信用卡繳款';
+                }
+
+                if (['副卡收款', '正卡繳費', '副卡繳費'].includes(payload.cardAction) && !payload.billPeriod) {
+                    return alert("請選擇這筆款項要歸屬的帳單期！");
+                }
 
                 if (payload.incomeExpenseType === '支出') {
                     payload.category = document.getElementById('form-category').value;
@@ -2775,7 +2855,8 @@
         const CREDIT_CARD_API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
         let cachedCreditCardRecords = [];
         let creditCardSelectedMonth = "";
-        let cachedSupplementaryCardSummary = null;
+        let cachedCreditCardSummary = null;
+        let creditCardCutoffDay = 27;
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>'"]/g, char => ({
@@ -2783,55 +2864,30 @@
             })[char]);
         }
 
-        function toCreditCardAmount(value) {
-            const amount = Number(String(value ?? '').replace(/[^0-9.-]/g, ''));
-            return Number.isFinite(amount) ? amount : 0;
-        }
-
-        function readSupplementaryCardSummary(result) {
-            const labels = ['本月刷卡總額度', '本月已繳金額', '本月待繳金額'];
-            const headers = (result.headers || []).map((header, index) => ({ header: String(header).trim(), index }));
-            const rows = result.data || [];
-            const values = labels.map(label => {
-                const column = headers.find(item => item.header === label);
-                const row = column ? rows.find(item => String(item[column.index] ?? '').trim() !== '') : null;
-                return toCreditCardAmount(row && column ? row[column.index] : 0);
-            });
-            return {
-                year: result.options?.year || '',
-                month: result.options?.month || '',
-                chargeAmount: values[0],
-                paidAmount: values[1],
-                outstandingAmount: values[2]
-            };
-        }
-
         async function loadCreditCardRecords() {
             const container = document.getElementById('credit-card-container');
             const summary = document.getElementById('credit-card-summary');
             const monthInput = document.getElementById('credit-card-month');
+            const cutoffInput = document.getElementById('credit-card-cutoff');
             if (!container || !summary || !monthInput) return;
             container.innerHTML = '<div class="placeholder-box">⏳ 載入信用卡消費中...</div>';
             summary.innerHTML = '';
 
             try {
-                const [recordsResponse, supplementaryResponse] = await Promise.all([
-                    fetch(CREDIT_CARD_API_URL + '?action=getCreditCardRecords'),
-                    fetch(CREDIT_CARD_API_URL + '?action=getSupplementaryCardDetails')
-                ]);
-                const result = await recordsResponse.json();
-                const supplementaryResult = await supplementaryResponse.json();
+                const requestMonth = creditCardSelectedMonth ? `&month=${encodeURIComponent(creditCardSelectedMonth)}` : '';
+                const response = await fetch(`${CREDIT_CARD_API_URL}?action=getCreditCardRecords${requestMonth}`);
+                const result = await response.json();
                 if (!result.success) throw new Error(result.message || '讀取失敗');
 
                 cachedCreditCardRecords = result.data || [];
-                cachedSupplementaryCardSummary = supplementaryResult.success
-                    ? readSupplementaryCardSummary(supplementaryResult)
-                    : null;
                 const months = result.months || [];
                 if (!creditCardSelectedMonth || !months.includes(creditCardSelectedMonth)) {
-                    creditCardSelectedMonth = months[0] || new Date().toISOString().slice(0, 7);
+                    creditCardSelectedMonth = result.selectedMonth || months[0] || new Date().toISOString().slice(0, 7);
                 }
+                cachedCreditCardSummary = result.summary || null;
+                creditCardCutoffDay = Number(result.cutoffDay) || 27;
                 monthInput.value = creditCardSelectedMonth;
+                if (cutoffInput) cutoffInput.value = creditCardCutoffDay;
                 renderCreditCardRecords();
             } catch (error) {
                 container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 無法讀取信用卡消費：${escapeHtml(error.message)}</div>`;
@@ -2840,7 +2896,31 @@
 
         function changeCreditCardMonth(month) {
             creditCardSelectedMonth = month;
-            renderCreditCardRecords();
+            loadCreditCardRecords();
+        }
+
+        async function saveCreditCardBillingSettings() {
+            const cutoffInput = document.getElementById('credit-card-cutoff');
+            const cutoffDay = Number(cutoffInput.value);
+            if (!Number.isInteger(cutoffDay) || cutoffDay < 1 || cutoffDay > 31) {
+                showCustomAlert('⚠️', '請確認截止日', '請輸入 1 到 31 的整數。');
+                return;
+            }
+            try {
+                const response = await fetch(CREDIT_CARD_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateCreditCardBillingSettings',
+                        cutoffDay,
+                        billPeriod: creditCardSelectedMonth
+                    })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || '儲存失敗');
+                showCustomAlert('✅', '設定已儲存', `每月 ${cutoffDay} 日後的刷卡將歸入下一期帳單。`, loadCreditCardRecords);
+            } catch (error) {
+                showCustomAlert('❌', '儲存失敗', error.message);
+            }
         }
 
         function renderCreditCardRecords() {
@@ -2849,31 +2929,31 @@
             if (!container || !summary) return;
             const records = cachedCreditCardRecords.filter(record => record.month === creditCardSelectedMonth);
             const fallbackTotal = records.reduce((sum, record) => sum + Number(record.amount || 0), 0);
-            const sheetSummary = cachedSupplementaryCardSummary || {
-                year: '', month: '', chargeAmount: fallbackTotal, paidAmount: 0, outstandingAmount: fallbackTotal
+            const stats = cachedCreditCardSummary || {
+                primaryCharge: 0, secondaryCharge: fallbackTotal, totalCharge: fallbackTotal,
+                secondaryReceived: 0, secondaryOutstanding: fallbackTotal, bankPaid: 0, bankOutstanding: fallbackTotal
             };
-            const summaryMonth = sheetSummary.year && sheetSummary.month
-                ? `${sheetSummary.year} 年 ${sheetSummary.month} 月`
-                : creditCardSelectedMonth;
+            const summaryItems = [
+                ['正卡刷卡', stats.primaryCharge],
+                ['副卡刷卡', stats.secondaryCharge],
+                ['本期刷卡總額', stats.totalCharge],
+                ['副卡本期已收款', stats.secondaryReceived],
+                ['副卡累計待收', stats.secondaryOutstanding],
+                ['本期繳給國泰', stats.bankPaid],
+                ['銀行累計待繳', stats.bankOutstanding]
+            ];
 
             summary.innerHTML = `
                 <div class="balance-card" style="margin-bottom:18px; padding:18px 20px; text-align:left;">
-                    <div class="title">${escapeHtml(summaryMonth)} 信用卡附卡摘要</div>
-                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">
-                        <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
-                            <div style="font-size:11px; opacity:.72;">本月刷卡總額度</div>
-                            <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${sheetSummary.chargeAmount.toLocaleString('zh-TW')}</div>
-                        </div>
-                        <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
-                            <div style="font-size:11px; opacity:.72;">本月已繳金額</div>
-                            <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${sheetSummary.paidAmount.toLocaleString('zh-TW')}</div>
-                        </div>
-                        <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
-                            <div style="font-size:11px; opacity:.72;">本月待繳金額</div>
-                            <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${sheetSummary.outstandingAmount.toLocaleString('zh-TW')}</div>
-                        </div>
+                    <div class="title">${escapeHtml(creditCardSelectedMonth || '本期')} 信用卡帳單摘要</div>
+                    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px;">
+                        ${summaryItems.map(([label, value]) => `
+                            <div style="background:rgba(0,0,0,.16); border-radius:10px; padding:10px 8px;">
+                                <div style="font-size:11px; opacity:.72;">${label}</div>
+                                <div style="font-family:monospace; font-weight:700; font-size:17px; margin-top:3px;">$ ${Number(value || 0).toLocaleString('zh-TW')}</div>
+                            </div>`).join('')}
                     </div>
-                    <div style="font-size:13px; opacity:.75; margin-top:10px;">消費明細篩選：${escapeHtml(creditCardSelectedMonth || '本月')}，共 ${records.length} 筆</div>
+                    <div style="font-size:13px; opacity:.75; margin-top:10px;">截止日：每月 ${escapeHtml(creditCardCutoffDay)} 日；本期刷卡明細共 ${records.length} 筆。</div>
                 </div>`;
 
             if (!records.length) {
@@ -2887,6 +2967,7 @@
                         <div>
                             <div style="color:#d6a5ff; font-size:13px; font-family:monospace;">${escapeHtml(record.date)}</div>
                             <div style="font-size:16px; font-weight:700; margin-top:5px; word-break:break-word;">${escapeHtml(record.note || '未填寫備註')}</div>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:5px;">${escapeHtml(record.cardRole || '信用卡')} · ${escapeHtml(record.category || '')}</div>
                         </div>
                         <div style="color:#ff9d9d; font-size:19px; font-weight:700; font-family:monospace; white-space:nowrap;">$ ${Number(record.amount || 0).toLocaleString('zh-TW')}</div>
                     </div>
