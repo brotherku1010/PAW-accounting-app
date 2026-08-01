@@ -766,9 +766,8 @@
                             <option value="儲蓄投資">儲蓄投資</option>
                             <option value="娛樂">娛樂</option>
                             <option value="奉獻">奉獻</option>
-                            <option value="信用消費">信用消費</option>
-                            <option value="信用消費(副卡)">信用消費(副卡)</option>
-                            <option value="信用卡繳款">信用卡繳款</option>
+                            <option value="信用消費(副卡)" data-card-category="true" hidden disabled>信用消費(副卡)</option>
+                            <option value="信用卡繳款" data-card-category="true" hidden disabled>信用卡繳款</option>
                         </select>
                     </div>
 
@@ -785,8 +784,8 @@
                             <option value="國泰">國泰</option>
                             <option value="華南">華南</option>
                             <option value="錢包">錢包</option>
-                            <option value="信用卡(正)" data-card-payment="true">信用卡(正)</option>
-                            <option value="信用卡(副)" data-card-payment="true">信用卡(副)</option>
+                            <option value="信用卡(正)" data-card-payment="true" hidden disabled>信用卡(正)</option>
+                            <option value="信用卡(副)" data-card-payment="true" hidden disabled>信用卡(副)</option>
                         </select>
                     </div>
 
@@ -1506,15 +1505,15 @@
 
         const MAIN_CARD_BUDGET_CATEGORIES = ['生活費', '必要支出', '儲蓄投資', '娛樂', '奉獻'];
 
-        // 正卡刷卡必須歸入五大預算；離開正卡模式時再還原一般記帳的完整類別。
-        function setCategoryOptionsForMainCard(mainCardOnly) {
+        // 一般支出與正卡刷卡都只使用五大預算；信用卡專用類別僅由信用卡動作自動帶入。
+        function restrictCategoryToBudgetCategories() {
             const category = document.getElementById('form-category');
             Array.from(category.options).forEach(option => {
                 const isBudgetCategory = MAIN_CARD_BUDGET_CATEGORIES.includes(option.value);
-                option.hidden = mainCardOnly && !isBudgetCategory;
-                option.disabled = mainCardOnly && !isBudgetCategory;
+                option.hidden = !isBudgetCategory;
+                option.disabled = !isBudgetCategory;
             });
-            if (mainCardOnly && !MAIN_CARD_BUDGET_CATEGORIES.includes(category.value)) {
+            if (!MAIN_CARD_BUDGET_CATEGORIES.includes(category.value)) {
                 category.value = MAIN_CARD_BUDGET_CATEGORIES[0];
             }
         }
@@ -1527,26 +1526,26 @@
 
             if (action === '正卡刷卡') {
                 setPaymentTypeOptions(true);
-                setCategoryOptionsForMainCard(true);
+                restrictCategoryToBudgetCategories();
                 paymentType.value = '信用卡(正)';
             } else if (action === '副卡刷卡') {
                 setPaymentTypeOptions(true);
-                setCategoryOptionsForMainCard(false);
+                restrictCategoryToBudgetCategories();
                 category.value = '信用消費(副卡)';
                 paymentType.value = '信用卡(副)';
             } else if (action === '副卡收款') {
                 setPaymentTypeOptions(false);
-                setCategoryOptionsForMainCard(false);
+                restrictCategoryToBudgetCategories();
                 category.value = '信用消費(副卡)';
             } else if (action === '正卡繳費' || action === '副卡繳費') {
                 setPaymentTypeOptions(false);
-                setCategoryOptionsForMainCard(false);
+                restrictCategoryToBudgetCategories();
                 category.value = '信用卡繳款';
                 if (paymentType.value === '信用卡(正)' || paymentType.value === '信用卡(副)') {
                     paymentType.value = '國泰';
                 }
             } else {
-                setCategoryOptionsForMainCard(false);
+                restrictCategoryToBudgetCategories();
             }
 
             if (action && !billPeriod.value) billPeriod.value = new Date().toISOString().slice(0, 7);
@@ -1693,8 +1692,8 @@
 
             if (type !== '信用卡') {
                 document.getElementById('form-cardAction').value = '';
-                setPaymentTypeOptions(true);
-                setCategoryOptionsForMainCard(false);
+                setPaymentTypeOptions(false);
+                restrictCategoryToBudgetCategories();
             }
 
             // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
