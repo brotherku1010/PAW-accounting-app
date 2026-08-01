@@ -736,13 +736,26 @@
                 <div id="group-general" style="display: block;">
 
                     <div class="form-group">
-                        <label>收支類型</label>
+                        <label>記帳類型</label>
                         <div class="toggle-group">
                             <div class="toggle-btn active" id="btn-ie-expense" onclick="setIEType('支出')">支出</div>
                             <div class="toggle-btn" id="btn-ie-income" onclick="setIEType('收入')">收入</div>
                             <div class="toggle-btn" id="btn-ie-repay" onclick="setIEType('還款收入')">還款收入</div>
+                            <div class="toggle-btn" id="btn-ie-credit" onclick="setIEType('信用卡')">信用卡</div>
                         </div>
                         <input type="hidden" id="form-incomeExpenseType" value="支出">
+                    </div>
+
+                    <div id="fg-cardAction" class="form-group" style="display: none;">
+                        <label>信用卡動作</label>
+                        <select id="form-cardAction" onchange="configureCreditCardAction()">
+                            <option value="">請選擇信用卡動作</option>
+                            <option value="正卡刷卡">正卡刷卡</option>
+                            <option value="副卡刷卡">副卡刷卡</option>
+                            <option value="副卡收款">副卡收款（父母匯款）</option>
+                            <option value="正卡繳費">正卡繳費（繳給國泰）</option>
+                            <option value="副卡繳費">副卡繳費（繳給國泰）</option>
+                        </select>
                     </div>
 
                     <div id="fg-category" class="form-group" style="display: block;">
@@ -759,18 +772,6 @@
                         </select>
                     </div>
 
-                    <div id="fg-cardAction" class="form-group" style="display: block;">
-                        <label>信用卡動作</label>
-                        <select id="form-cardAction" onchange="configureCreditCardAction()">
-                            <option value="">一般記帳（非信用卡）</option>
-                            <option value="正卡刷卡">正卡刷卡</option>
-                            <option value="副卡刷卡">副卡刷卡</option>
-                            <option value="副卡收款">副卡收款（父母匯款）</option>
-                            <option value="正卡繳費">正卡繳費（繳給國泰）</option>
-                            <option value="副卡繳費">副卡繳費（繳給國泰）</option>
-                        </select>
-                    </div>
-
                     <div id="fg-billPeriod" class="form-group" style="display: none;">
                         <label>歸屬帳單期</label>
                         <input id="form-billPeriod" type="month">
@@ -784,8 +785,8 @@
                             <option value="國泰">國泰</option>
                             <option value="華南">華南</option>
                             <option value="錢包">錢包</option>
-                            <option value="信用卡(正)">信用卡(正)</option>
-                            <option value="信用卡(副)">信用卡(副)</option>
+                            <option value="信用卡(正)" data-card-payment="true">信用卡(正)</option>
+                            <option value="信用卡(副)" data-card-payment="true">信用卡(副)</option>
                         </select>
                     </div>
 
@@ -1456,14 +1457,11 @@
                 groupTransfer.style.display = 'none';
 
                 const ieType = document.getElementById('form-incomeExpenseType').value;
-                // 先隱藏一般收支裡的所有細項
-                ['fg-category', 'fg-paymentType', 'fg-incomeAccount', 'fg-expenseAmount', 'fg-incomeAmount'].forEach(id => {
+                // 先隱藏一般收支裡的所有細項，再依模式只顯示可調整的欄位。
+                ['fg-cardAction', 'fg-category', 'fg-billPeriod', 'fg-paymentType', 'fg-incomeAccount', 'fg-expenseAmount', 'fg-incomeAmount'].forEach(id => {
                     document.getElementById(id).style.display = 'none';
                 });
-                document.getElementById('fg-cardAction').style.display = 'block';
                 const cardAction = document.getElementById('form-cardAction').value;
-                document.getElementById('fg-billPeriod').style.display =
-                    ['副卡收款', '正卡繳費', '副卡繳費'].includes(cardAction) ? 'block' : 'none';
 
                 // 依據收支類型顯示對應欄位
                 if (ieType === '支出') {
@@ -1477,8 +1475,33 @@
                     document.getElementById('fg-category').style.display = 'block';
                     document.getElementById('fg-incomeAccount').style.display = 'block';
                     document.getElementById('fg-incomeAmount').style.display = 'block';
+                } else if (ieType === '信用卡') {
+                    document.getElementById('fg-cardAction').style.display = 'block';
+
+                    if (cardAction === '正卡刷卡') {
+                        document.getElementById('fg-category').style.display = 'block';
+                        document.getElementById('fg-expenseAmount').style.display = 'block';
+                    } else if (cardAction === '副卡刷卡') {
+                        document.getElementById('fg-expenseAmount').style.display = 'block';
+                    } else if (cardAction === '副卡收款') {
+                        document.getElementById('fg-incomeAccount').style.display = 'block';
+                        document.getElementById('fg-incomeAmount').style.display = 'block';
+                        document.getElementById('fg-billPeriod').style.display = 'block';
+                    } else if (cardAction === '正卡繳費' || cardAction === '副卡繳費') {
+                        document.getElementById('fg-paymentType').style.display = 'block';
+                        document.getElementById('fg-expenseAmount').style.display = 'block';
+                        document.getElementById('fg-billPeriod').style.display = 'block';
+                    }
                 }
             }
+        }
+
+        function setPaymentTypeOptions(allowCardPayment) {
+            const paymentType = document.getElementById('form-paymentType');
+            paymentType.querySelectorAll('option[data-card-payment="true"]').forEach(option => {
+                option.hidden = !allowCardPayment;
+                option.disabled = !allowCardPayment;
+            });
         }
 
         function configureCreditCardAction() {
@@ -1488,18 +1511,21 @@
             const billPeriod = document.getElementById('form-billPeriod');
 
             if (action === '正卡刷卡') {
-                setIEType('支出');
+                setPaymentTypeOptions(true);
                 paymentType.value = '信用卡(正)';
             } else if (action === '副卡刷卡') {
-                setIEType('支出');
+                setPaymentTypeOptions(true);
                 category.value = '信用消費(副卡)';
                 paymentType.value = '信用卡(副)';
             } else if (action === '副卡收款') {
-                setIEType('還款收入');
+                setPaymentTypeOptions(false);
                 category.value = '信用消費(副卡)';
             } else if (action === '正卡繳費' || action === '副卡繳費') {
-                setIEType('支出');
+                setPaymentTypeOptions(false);
                 category.value = '信用卡繳款';
+                if (paymentType.value === '信用卡(正)' || paymentType.value === '信用卡(副)') {
+                    paymentType.value = '國泰';
+                }
             }
 
             if (action && !billPeriod.value) billPeriod.value = new Date().toISOString().slice(0, 7);
@@ -1525,12 +1551,14 @@
                 if (!payload.transferAmount) return alert("請輸入轉帳金額！");
                 if (payload.transferOut === payload.transferIn) return alert("轉出與轉入不能是同一個帳戶！");
             } else {
-                payload.incomeExpenseType = document.getElementById('form-incomeExpenseType').value;
+                const inputMode = document.getElementById('form-incomeExpenseType').value;
+                payload.incomeExpenseType = inputMode;
                 payload.note = document.getElementById('form-note').value;
-                payload.cardAction = document.getElementById('form-cardAction').value;
+                payload.cardAction = inputMode === '信用卡' ? document.getElementById('form-cardAction').value : '';
                 payload.billPeriod = document.getElementById('form-billPeriod').value;
 
                 if (!payload.date) return alert("請選擇日期！");
+                if (inputMode === '信用卡' && !payload.cardAction) return alert("請選擇信用卡動作！");
                 if (payload.cardAction === '正卡刷卡') {
                     payload.incomeExpenseType = '支出';
                     document.getElementById('form-paymentType').value = '信用卡(正)';
@@ -1630,6 +1658,7 @@
             document.getElementById('btn-ie-expense').classList.remove('active');
             document.getElementById('btn-ie-income').classList.remove('active');
             document.getElementById('btn-ie-repay').classList.remove('active');
+            document.getElementById('btn-ie-credit').classList.remove('active');
 
             // 根據選取的類型加上 active 狀態
             if (type === '支出') {
@@ -1638,6 +1667,13 @@
                 document.getElementById('btn-ie-income').classList.add('active');
             } else if (type === '還款收入') {
                 document.getElementById('btn-ie-repay').classList.add('active');
+            } else if (type === '信用卡') {
+                document.getElementById('btn-ie-credit').classList.add('active');
+            }
+
+            if (type !== '信用卡') {
+                document.getElementById('form-cardAction').value = '';
+                setPaymentTypeOptions(true);
             }
 
             // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
@@ -2940,7 +2976,7 @@
                 ['副卡本期已收款', stats.secondaryReceived],
                 ['副卡累計待收', stats.secondaryOutstanding],
                 ['本期繳給國泰', stats.bankPaid],
-                ['銀行累計待繳', stats.bankOutstanding]
+                ['本期待繳金額', stats.bankOutstanding]
             ];
 
             summary.innerHTML = `

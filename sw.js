@@ -1,4 +1,4 @@
-const CACHE_NAME = 'accounting-app-v1';
+const CACHE_NAME = 'accounting-app-v2';
 const urlsToCache = [
   './index.html',
   './manifest.json'
@@ -11,6 +11,18 @@ self.addEventListener('install', event => {
       .then(cache => {
         return cache.addAll(urlsToCache);
       })
+      .then(() => self.skipWaiting())
+  );
+});
+
+// 清除舊版快取，讓已安裝的 PWA 取得新版介面。
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys
+        .filter(key => key !== CACHE_NAME)
+        .map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
 });
 
