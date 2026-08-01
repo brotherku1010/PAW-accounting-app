@@ -967,7 +967,7 @@
                 <div class="form-group"><label for="credit-card-edit-date">日期</label><input id="credit-card-edit-date" type="date"></div>
                 <div class="form-group"><label for="credit-card-edit-amount">金額</label><input id="credit-card-edit-amount" type="number" min="1" step="1"></div>
                 <div class="form-group"><label for="credit-card-edit-note">備註</label><input id="credit-card-edit-note" type="text" maxlength="200"></div>
-                <div style="font-size:12px; color:var(--text-muted); margin:-4px 0 16px;">支付類型與帳目類型固定為「信用卡／信用消費」。</div>
+                <div style="font-size:12px; color:var(--text-muted); margin:-4px 0 16px;">此處僅能修改日期、金額、備註；正卡保留原五大預算分類，副卡保留「信用消費(副卡)」。</div>
                 <button class="submit-btn" onclick="saveCreditCardRecord()">儲存變更</button>
             </div>
         </div>
@@ -1504,6 +1504,21 @@
             });
         }
 
+        const MAIN_CARD_BUDGET_CATEGORIES = ['生活費', '必要支出', '儲蓄投資', '娛樂', '奉獻'];
+
+        // 正卡刷卡必須歸入五大預算；離開正卡模式時再還原一般記帳的完整類別。
+        function setCategoryOptionsForMainCard(mainCardOnly) {
+            const category = document.getElementById('form-category');
+            Array.from(category.options).forEach(option => {
+                const isBudgetCategory = MAIN_CARD_BUDGET_CATEGORIES.includes(option.value);
+                option.hidden = mainCardOnly && !isBudgetCategory;
+                option.disabled = mainCardOnly && !isBudgetCategory;
+            });
+            if (mainCardOnly && !MAIN_CARD_BUDGET_CATEGORIES.includes(category.value)) {
+                category.value = MAIN_CARD_BUDGET_CATEGORIES[0];
+            }
+        }
+
         function configureCreditCardAction() {
             const action = document.getElementById('form-cardAction').value;
             const category = document.getElementById('form-category');
@@ -1512,20 +1527,26 @@
 
             if (action === '正卡刷卡') {
                 setPaymentTypeOptions(true);
+                setCategoryOptionsForMainCard(true);
                 paymentType.value = '信用卡(正)';
             } else if (action === '副卡刷卡') {
                 setPaymentTypeOptions(true);
+                setCategoryOptionsForMainCard(false);
                 category.value = '信用消費(副卡)';
                 paymentType.value = '信用卡(副)';
             } else if (action === '副卡收款') {
                 setPaymentTypeOptions(false);
+                setCategoryOptionsForMainCard(false);
                 category.value = '信用消費(副卡)';
             } else if (action === '正卡繳費' || action === '副卡繳費') {
                 setPaymentTypeOptions(false);
+                setCategoryOptionsForMainCard(false);
                 category.value = '信用卡繳款';
                 if (paymentType.value === '信用卡(正)' || paymentType.value === '信用卡(副)') {
                     paymentType.value = '國泰';
                 }
+            } else {
+                setCategoryOptionsForMainCard(false);
             }
 
             if (action && !billPeriod.value) billPeriod.value = new Date().toISOString().slice(0, 7);
@@ -1562,8 +1583,7 @@
                 if (payload.cardAction === '正卡刷卡') {
                     payload.incomeExpenseType = '支出';
                     document.getElementById('form-paymentType').value = '信用卡(正)';
-                    const mainCardCategories = ['生活費', '必要支出', '儲蓄投資', '娛樂', '奉獻'];
-                    if (!mainCardCategories.includes(document.getElementById('form-category').value)) {
+                    if (!MAIN_CARD_BUDGET_CATEGORIES.includes(document.getElementById('form-category').value)) {
                         return alert("正卡刷卡請選擇：生活費、必要支出、儲蓄投資、娛樂或奉獻。");
                     }
                 } else if (payload.cardAction === '副卡刷卡') {
@@ -1674,6 +1694,7 @@
             if (type !== '信用卡') {
                 document.getElementById('form-cardAction').value = '';
                 setPaymentTypeOptions(true);
+                setCategoryOptionsForMainCard(false);
             }
 
             // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
