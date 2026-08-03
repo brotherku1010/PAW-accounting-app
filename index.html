@@ -651,10 +651,52 @@
         input:checked+.slider:before {
             transform: translateX(22px);
         }
+
+        /* 手機橫放時的隱藏投影模式：僅保留全螢幕背景照片。 */
+        #landscape-photo-frame {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 2147483647;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #landscape-photo-frame .landscape-slide {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 700ms ease-in-out;
+        }
+
+        #landscape-photo-frame .landscape-slide.is-visible {
+            opacity: 1;
+        }
+
+        body.landscape-photo-mode {
+            overflow: hidden;
+            background: #000;
+        }
+
+        body.landscape-photo-mode .app-container {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        body.landscape-photo-mode #landscape-photo-frame {
+            display: block;
+        }
     </style>
 </head>
 
 <body>
+    <div id="landscape-photo-frame" aria-hidden="true">
+        <img class="landscape-slide" alt="">
+        <img class="landscape-slide" alt="">
+    </div>
     <div class="app-container" style="position: relative; overflow: hidden; min-height: 100vh;">
         <div id="page-home" class="page active">
             <div class="month-selector">
@@ -1127,6 +1169,7 @@
         let isReportDataDirty = true; // 標記是否需要重新讀取 (true = 需要)
         // ================= 系統開機主動載入引擎 =================
         window.addEventListener('load', async () => {
+            initializeLandscapePhotoMode(); // 橫放手機時顯示背景照片投影模式
             updateMonthDisplay();// 1. 初始化前端的年月份顯示 (預設為今天所在的當月)
             spawnRandomPic();// 2. 召喚雲端隨機圖片
             // 開機時自動套用上次記憶的標籤與眼睛狀態
@@ -1699,6 +1742,107 @@
             // 呼叫原本的隱藏/顯示邏輯，讓下方欄位自動變化
             updateFormVisibility();
         }
+        // ================= 橫放背景投影模式 =================
+        const LANDSCAPE_SLIDE_DURATION = 8000;
+        let landscapePhotoUrls = [];
+        let landscapeSlideIndex = 0;
+        let landscapeVisibleSlot = -1;
+        let landscapeSlideTimer = null;
+        let landscapeImageRequestId = 0;
+
+        function isMobileLandscapeProjection() {
+            const isLandscape = window.matchMedia('(orientation: landscape)').matches;
+            const isMobileUserAgent = navigator.userAgentData?.mobile ?? /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+            const isTouchPhoneViewport = navigator.maxTouchPoints > 0 && Math.max(window.innerWidth, window.innerHeight) <= 1024;
+            return isLandscape && (isMobileUserAgent || isTouchPhoneViewport);
+        }
+
+        function updateLandscapePhotoMode() {
+            const frame = document.getElementById('landscape-photo-frame');
+            if (!frame) return;
+
+            const shouldProject = isMobileLandscapeProjection();
+            document.body.classList.toggle('landscape-photo-mode', shouldProject);
+            frame.setAttribute('aria-hidden', String(!shouldProject));
+
+            if (shouldProject) {
+                showLandscapeSlide(landscapeSlideIndex);
+                startLandscapeSlideshow();
+            } else {
+                stopLandscapeSlideshow();
+            }
+        }
+
+        function showLandscapeSlide(index) {
+            if (landscapePhotoUrls.length === 0) return;
+
+            const frame = document.getElementById('landscape-photo-frame');
+            if (!frame) return;
+            const slides = frame.querySelectorAll('.landscape-slide');
+            if (slides.length < 2) return;
+
+            landscapeSlideIndex = ((index % landscapePhotoUrls.length) + landscapePhotoUrls.length) % landscapePhotoUrls.length;
+            const nextSlot = landscapeVisibleSlot === 0 ? 1 : 0;
+            const incoming = slides[nextSlot];
+            const outgoing = landscapeVisibleSlot >= 0 ? slides[landscapeVisibleSlot] : null;
+            const requestId = ++landscapeImageRequestId;
+
+            const revealImage = () => {
+                if (requestId !== landscapeImageRequestId) return;
+                incoming.classList.add('is-visible');
+                if (outgoing) outgoing.classList.remove('is-visible');
+                landscapeVisibleSlot = nextSlot;
+            };
+
+            incoming.onload = revealImage;
+            incoming.src = landscapePhotoUrls[landscapeSlideIndex];
+            // 快取命中時 load 事件可能已完成，直接顯示避免停留在黑畫面。
+            if (incoming.complete) revealImage();
+        }
+
+        function startLandscapeSlideshow() {
+            stopLandscapeSlideshow();
+            if (landscapePhotoUrls.length < 2) return;
+            landscapeSlideTimer = window.setInterval(() => {
+                landscapeSlideIndex = (landscapeSlideIndex + 1) % landscapePhotoUrls.length;
+                showLandscapeSlide(landscapeSlideIndex);
+            }, LANDSCAPE_SLIDE_DURATION);
+        }
+
+        function stopLandscapeSlideshow() {
+            if (landscapeSlideTimer) {
+                window.clearInterval(landscapeSlideTimer);
+                landscapeSlideTimer = null;
+            }
+        }
+
+        function setLandscapePhotoUrls(images) {
+            landscapePhotoUrls = [...new Set(images.filter(url => typeof url === 'string' && url.trim()))].slice(0, 3);
+            landscapeSlideIndex = 0;
+            landscapeVisibleSlot = -1;
+            document.querySelectorAll('#landscape-photo-frame .landscape-slide').forEach(slide => {
+                slide.classList.remove('is-visible');
+                slide.removeAttribute('src');
+            });
+            updateLandscapePhotoMode();
+        }
+
+        function initializeLandscapePhotoMode() {
+            let resizeTimer = null;
+            const scheduleUpdate = () => {
+                window.clearTimeout(resizeTimer);
+                resizeTimer = window.setTimeout(updateLandscapePhotoMode, 120);
+            };
+
+            window.addEventListener('resize', scheduleUpdate);
+            window.addEventListener('orientationchange', scheduleUpdate);
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) stopLandscapeSlideshow();
+                else updateLandscapePhotoMode();
+            });
+            updateLandscapePhotoMode();
+        }
+
         // ================= 底圖生成系統 (雲端動態版) =================
         // 首頁載入時產生底圖
         async function spawnRandomPic() {
@@ -1727,6 +1871,7 @@
                     result.images.forEach((imgUrl, index) => {
                         renderSinglePic(imgUrl, index);
                     });
+                    setLandscapePhotoUrls(result.images);
                 }
             } catch (error) {
                 console.error("無法召喚插圖：", error);
@@ -2232,6 +2377,7 @@
 
                     document.querySelectorAll('.random-pic').forEach(pic => pic.remove());
                     result.images.forEach((url, index) => renderSinglePic(url, index));
+                    setLandscapePhotoUrls(result.images);
 
                     showCustomAlert("✅", "更換成功", "底圖已更新！");
                     setTimeout(() => {
