@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#12121a">
     <link rel="manifest" href="cardholder-manifest.json">
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <title>信用卡附卡明細</title>
     <style>
         :root { color-scheme: dark; --bg:#12121a; --card:#20202c; --line:rgba(255,255,255,.1); --muted:#aeb1bd; --accent:#d6a5ff; }
@@ -39,7 +40,11 @@
         #app-lock p { margin:0 0 20px; color:var(--muted); font-size:14px; }
         #app-lock input { width:100%; height:46px; border:1px solid var(--line); border-radius:10px; background:#14141d; color:#fff; padding:0 12px; text-align:center; letter-spacing:4px; font-size:20px; margin-bottom:12px; }
         #lock-error { min-height:20px; margin:10px 0 0; color:#ff9999; font-size:13px; }
-        .logout { width:auto; min-height:32px; padding:0 10px; background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; }
+        .header-actions { display:flex; align-items:center; gap:8px; }
+        .logout, .notify { width:auto; min-height:32px; padding:0 10px; background:transparent; border:1px solid var(--line); color:var(--muted); font-size:12px; }
+        .notify.is-enabled { border-color:rgba(214,165,255,.72); background:rgba(214,165,255,.13); color:#f1ddff; }
+        .notify:disabled { cursor:wait; }
+        .notification-note { margin:-9px 2px 18px; color:var(--muted); font-size:12px; line-height:1.55; }
         .message { padding:36px 16px; color:var(--muted); text-align:center; }
         .error { color:#ff9999; }
         @media (max-width:480px) { main { padding:20px 12px 40px; } .controls { grid-template-columns:1fr 1fr; } .controls button { grid-column:1 / -1; } .summary { grid-template-columns:1fr; } .summary-item + .summary-item { border-left:0; border-top:1px solid var(--line); } }
@@ -50,9 +55,13 @@
     <main>
         <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
             <h1>信用卡附卡明細</h1>
-            <button class="logout" onclick="lockApp()">登出</button>
+            <div class="header-actions">
+                <button id="cardholder-push-button" class="notify" type="button" onclick="toggleCardholderReminder()" disabled>載入提醒設定…</button>
+                <button class="logout" type="button" onclick="lockApp()">登出</button>
+            </div>
         </div>
         <p class="sub">可查看指定帳單期的使用明細，並切換要查看的年份與月份。</p>
+        <p id="cardholder-push-note" class="notification-note">附卡繳費提醒會在每月 10、11、12 日各推播一次，提醒 13 日繳付前一期帳單。</p>
 
         <section class="controls" aria-label="年月選擇">
             <div><label for="selected-year">選擇年份</label><select id="selected-year"></select></div>
@@ -83,6 +92,31 @@
         const monthSelect = document.getElementById('selected-month');
         const applyButton = document.getElementById('apply-button');
         const APP_PASSWORD = '1973';
+        const ONESIGNAL_APP_ID = '63edf55e-d6fa-4954-a990-e83ff5675d51';
+        const CARDHOLDER_REMINDER_TAG = 'paw_cardholder_payment_reminder';
+        const ONESIGNAL_WORKER_PATH = 'OneSignalSDK-v16-ServiceWorker/OneSignalSDK-v16-ServiceWorker/OneSignalSDKWorker.js';
+        const ONESIGNAL_WORKER_SCOPE = './OneSignalSDK-v16-ServiceWorker/OneSignalSDK-v16-ServiceWorker/';
+        let oneSignalInstance = null;
+        let oneSignalInitError = '';
+        const oneSignalReady = new Promise(resolve => {
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push(async function (OneSignal) {
+                try {
+                    await OneSignal.init({
+                        appId: ONESIGNAL_APP_ID,
+                        notifyButton: { enable: false },
+                        serviceWorkerPath: ONESIGNAL_WORKER_PATH,
+                        serviceWorkerParam: { scope: ONESIGNAL_WORKER_SCOPE }
+                    });
+                    oneSignalInstance = OneSignal;
+                    OneSignal.User.PushSubscription.addEventListener('change', refreshCardholderReminderUI);
+                } catch (error) {
+                    oneSignalInitError = error && error.message ? error.message : '推播服務無法初始化';
+                    console.warn('附卡提醒初始化失敗：', error);
+                }
+                resolve(oneSignalInstance);
+            });
+        });
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char]);
@@ -183,6 +217,59 @@
             }
         }
 
+        function setCardholderReminderUI({ enabled = false, supported = true, message = '' } = {}) {
+            const button = document.getElementById('cardholder-push-button');
+            const note = document.getElementById('cardholder-push-note');
+            button.classList.toggle('is-enabled', enabled);
+            button.disabled = !supported;
+            button.textContent = enabled ? '繳費提醒：已開啟' : (supported ? '開啟繳費提醒' : '此裝置不支援推播');
+            note.textContent = message || (enabled
+                ? '已開啟：每月 10、11、12 日各提醒一次，13 日繳付前一期帳單。'
+                : '附卡繳費提醒會在每月 10、11、12 日各推播一次，提醒 13 日繳付前一期帳單。');
+        }
+
+        async function refreshCardholderReminderUI() {
+            const OneSignal = await oneSignalReady;
+            if (!OneSignal) {
+                setCardholderReminderUI({ supported: false, message: `推播服務目前無法使用${oneSignalInitError ? `：${oneSignalInitError}` : ''}` });
+                return;
+            }
+            const supported = OneSignal.Notifications.isPushSupported();
+            if (!supported) {
+                setCardholderReminderUI({ supported: false, message: '此瀏覽器或目前的使用模式不支援推播通知。' });
+                return;
+            }
+            const tags = OneSignal.User.getTags() || {};
+            const enabled = Boolean(OneSignal.User.PushSubscription.optedIn && tags[CARDHOLDER_REMINDER_TAG] === 'enabled');
+            setCardholderReminderUI({ enabled });
+        }
+
+        async function toggleCardholderReminder() {
+            const button = document.getElementById('cardholder-push-button');
+            button.disabled = true;
+            try {
+                const OneSignal = await oneSignalReady;
+                if (!OneSignal || !OneSignal.Notifications.isPushSupported()) throw new Error('此裝置不支援推播通知');
+
+                const tags = OneSignal.User.getTags() || {};
+                const isEnabled = Boolean(OneSignal.User.PushSubscription.optedIn && tags[CARDHOLDER_REMINDER_TAG] === 'enabled');
+                if (isEnabled) {
+                    await OneSignal.User.removeTag(CARDHOLDER_REMINDER_TAG);
+                } else {
+                    if (!OneSignal.User.PushSubscription.optedIn) await OneSignal.User.PushSubscription.optIn();
+                    if (!OneSignal.User.PushSubscription.optedIn) throw new Error('尚未取得通知權限，請在瀏覽器提示中選擇允許');
+                    await OneSignal.User.addTag(CARDHOLDER_REMINDER_TAG, 'enabled');
+                }
+            } catch (error) {
+                setCardholderReminderUI({
+                    supported: true,
+                    message: `無法變更提醒設定：${error && error.message ? error.message : '請稍後再試'}`
+                });
+                return;
+            }
+            await refreshCardholderReminderUI();
+        }
+
         function unlockApp() {
             const input = document.getElementById('app-password');
             if (input.value !== APP_PASSWORD) {
@@ -193,6 +280,7 @@
             sessionStorage.setItem('paw-cardholder-unlocked', 'true');
             document.getElementById('app-lock').style.display = 'none';
             loadDetails();
+            refreshCardholderReminderUI();
         }
 
         function lockApp() {
@@ -209,6 +297,7 @@
         if (sessionStorage.getItem('paw-cardholder-unlocked') === 'true') {
             document.getElementById('app-lock').style.display = 'none';
             loadDetails();
+            refreshCardholderReminderUI();
         }
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('./cardholder-sw.js');
     </script>

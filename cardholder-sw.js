@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paw-cardholder-v5';
+const CACHE_NAME = 'paw-cardholder-v6';
 const APP_SHELL = [
   './cardholder.html',
   './cardholder-manifest.json'
@@ -11,7 +11,11 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+    caches.keys().then(keys => Promise.all(
+      keys
+        .filter(key => key.startsWith('paw-cardholder-') && key !== CACHE_NAME)
+        .map(key => caches.delete(key))
+    ))
   );
   self.clients.claim();
 });
