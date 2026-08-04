@@ -1,5 +1,5 @@
 {
-  "name": "PAW 副卡額度",
+  "name": "國泰副卡刷卡額度",
   "short_name": "信用卡刷卡紀錄",
   "id": "./cardholder.html",
   "start_url": "./cardholder.html",
@@ -8,7 +8,7 @@
   "display_override": ["standalone"],
   "background_color": "#12121a",
   "theme_color": "#12121a",
-  "description": "查看 PAW 信用卡附卡消費額度與明細。",
+  "description": "查看國泰信用卡副卡消費額度與明細。",
   "icons": [
     {
       "src": "cardholder-icon-192.svg",
