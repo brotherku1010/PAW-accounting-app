@@ -667,13 +667,26 @@
             inset: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            /* 保留完整照片，不因橫向螢幕比例不同而裁掉上下或左右畫面。 */
+            object-fit: contain;
+            object-position: center;
             opacity: 0;
+            transform: translateY(-1.2%) scale(0.96);
             transition: opacity 700ms ease-in-out;
+            animation: landscape-photo-float 10s ease-in-out infinite;
         }
 
         #landscape-photo-frame .landscape-slide.is-visible {
             opacity: 1;
+        }
+
+        @keyframes landscape-photo-float {
+            0%, 100% {
+                transform: translateY(-1.2%) scale(0.96);
+            }
+            50% {
+                transform: translateY(1.2%) scale(0.96);
+            }
         }
 
         body.landscape-photo-mode {
