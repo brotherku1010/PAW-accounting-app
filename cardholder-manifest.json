@@ -1,6 +1,6 @@
 {
-  "name": "PAW 附卡額度",
-  "short_name": "PAW 附卡",
+  "name": "PAW 副卡額度",
+  "short_name": "信用卡刷卡紀錄",
   "id": "./cardholder.html",
   "start_url": "./cardholder.html",
   "scope": "./",
