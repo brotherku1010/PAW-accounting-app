@@ -1,4 +1,4 @@
-const CACHE_NAME = 'accounting-app-v7';
+const CACHE_NAME = 'accounting-app-v8';
 const urlsToCache = [
   './index.html',
   './manifest.json'
@@ -28,6 +28,9 @@ self.addEventListener('activate', event => {
 
 // 攔截網路請求，優先從快取讀取
 self.addEventListener('fetch', event => {
+    // 錢包選單必須取得最新名單，不使用任何既有 API 快取。
+    const url = new URL(event.request.url);
+    if (url.searchParams.get('action') === 'getWalletsManage') return;
   event.respondWith(
     caches.match(event.request)
       .then(response => {

@@ -835,10 +835,7 @@
                     <div id="fg-paymentType" class="form-group" style="display: block;">
                         <label>支付類型</label>
                         <select id="form-paymentType">
-                            <option value="郵局">郵局</option>
-                            <option value="國泰">國泰</option>
-                            <option value="華南">華南</option>
-                            <option value="錢包">錢包</option>
+                            <option value="">請先載入錢包清單</option>
                             <option value="信用卡(正)" data-card-payment="true" hidden disabled>信用卡(正)</option>
                             <option value="信用卡(副)" data-card-payment="true" hidden disabled>信用卡(副)</option>
                         </select>
@@ -847,10 +844,7 @@
                     <div id="fg-incomeAccount" class="form-group" style="display: none;">
                         <label>收入帳目</label>
                         <select id="form-incomeAccount">
-                            <option value="郵局">郵局</option>
-                            <option value="國泰">國泰</option>
-                            <option value="華南">華南</option>
-                            <option value="錢包">錢包</option>
+                            <option value="">請先載入錢包清單</option>
                         </select>
                     </div>
 
@@ -874,19 +868,13 @@
                     <div class="form-group">
                         <label>轉出帳戶</label>
                         <select id="form-transferOut">
-                            <option value="郵局">郵局</option>
-                            <option value="國泰">國泰</option>
-                            <option value="華南">華南</option>
-                            <option value="錢包">錢包</option>
+                            <option value="">請先載入錢包清單</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>轉入帳戶</label>
                         <select id="form-transferIn">
-                            <option value="郵局">郵局</option>
-                            <option value="國泰">國泰</option>
-                            <option value="華南">華南</option>
-                            <option value="錢包">錢包</option>
+                            <option value="">請先載入錢包清單</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -895,6 +883,10 @@
                     </div>
                 </div>
 
+                <div style="font-size:12px; color:var(--text-muted); margin:12px 0;">
+                    <span id="wallet-options-status" role="status" aria-live="polite">錢包清單尚未載入。</span>
+                    <button type="button" onclick="loadWalletOptions()" style="margin-left:8px; cursor:pointer;">重新讀取錢包</button>
+                </div>
                 <button id="btn-submit" class="submit-btn" onclick="submitRecord()">花錢咯~</button>
             </div>
         </div>
@@ -1380,6 +1372,8 @@
             if (pageId === 'page-details') loadDetails('支出');
             // C. 前往圖表
             if (pageId === 'page-chart') loadChartData();
+            // 每次開始記帳都重新讀取，包含其他裝置或直接在 Sheet 修改的錢包。
+            if (pageId === 'page-add') loadWalletOptions();
 
             // D. 前往原始資料
             if (pageId === 'page-raw-data') {
@@ -1553,10 +1547,17 @@
 
         function setPaymentTypeOptions(allowCardPayment) {
             const paymentType = document.getElementById('form-paymentType');
+            const names = getWalletOptionNames();
+            if (allowCardPayment && names.includes(paymentType.value)) {
+                lastSelectedPaymentWallet = paymentType.value;
+            }
             paymentType.querySelectorAll('option[data-card-payment="true"]').forEach(option => {
                 option.hidden = !allowCardPayment;
                 option.disabled = !allowCardPayment;
             });
+            if (!allowCardPayment && !names.includes(paymentType.value)) {
+                paymentType.value = names.includes(lastSelectedPaymentWallet) ? lastSelectedPaymentWallet : '';
+            }
         }
 
         const MAIN_CARD_BUDGET_CATEGORIES = ['生活費', '必要支出', '儲蓄投資', '娛樂', '奉獻'];
@@ -1597,14 +1598,15 @@
                 setPaymentTypeOptions(false);
                 restrictCategoryToBudgetCategories();
                 category.value = '信用卡繳款';
-                if (paymentType.value === '信用卡(正)' || paymentType.value === '信用卡(副)') {
-                    paymentType.value = '國泰';
-                }
             } else {
                 restrictCategoryToBudgetCategories();
             }
 
-            if (action && !billPeriod.value) billPeriod.value = new Date().toISOString().slice(0, 7);
+            if (['副卡收款', '正卡繳費', '副卡繳費'].includes(action)) {
+                if (!billPeriod.value) billPeriod.value = new Date().toISOString().slice(0, 7);
+            } else {
+                billPeriod.value = '';
+            }
             updateFormVisibility();
         }
 
@@ -1614,6 +1616,7 @@
             const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
 
             const btn = document.getElementById('btn-submit');
+            if (btn.disabled || !validateRecordWallets()) return;
             const payload = {}; // 準備要送出的資料包
 
             payload.date = document.getElementById('form-date').value;
@@ -1631,7 +1634,8 @@
                 payload.incomeExpenseType = inputMode;
                 payload.note = document.getElementById('form-note').value;
                 payload.cardAction = inputMode === '信用卡' ? document.getElementById('form-cardAction').value : '';
-                payload.billPeriod = document.getElementById('form-billPeriod').value;
+                payload.billPeriod = ['副卡收款', '正卡繳費', '副卡繳費'].includes(payload.cardAction)
+                    ? document.getElementById('form-billPeriod').value : '';
 
                 if (!payload.date) return alert("請選擇日期！");
                 if (inputMode === '信用卡' && !payload.cardAction) return alert("請選擇信用卡動作！");
@@ -1720,6 +1724,7 @@
             } else {
                 document.getElementById('btn-transfer').classList.add('active');
                 document.getElementById('btn-general').classList.remove('active');
+                document.getElementById('form-billPeriod').value = '';
             }
 
             // 呼叫原本的隱藏/顯示邏輯
@@ -1748,6 +1753,7 @@
 
             if (type !== '信用卡') {
                 document.getElementById('form-cardAction').value = '';
+                document.getElementById('form-billPeriod').value = '';
                 setPaymentTypeOptions(false);
                 restrictCategoryToBudgetCategories();
             }
@@ -1950,23 +1956,120 @@
             renderWalletManageHTML();
         }
 
-        // 2. 讀取錢包資料
+        // 記帳與管理頁共用「我的錢包」清單，不在前端寫死銀行／錢包名稱。
+        const WALLET_SELECT_IDS = ['form-paymentType', 'form-incomeAccount', 'form-transferOut', 'form-transferIn'];
+        let walletOptionsState = 'idle';
+        let walletOptionsRequest = 0;
+        let lastSelectedPaymentWallet = '';
+
+        function getWalletOptionNames() {
+            const cardValues = ['信用卡', '信用卡(正)', '信用卡(副)'];
+            return [...new Set(cachedManageWallets.map(wallet => String(wallet.name || '').trim())
+                .filter(name => name && !cardValues.includes(name)))];
+        }
+
+        function renderWalletOptions() {
+            const names = getWalletOptionNames();
+            const available = walletOptionsState === 'ready' && names.length > 0;
+            const placeholder = walletOptionsState === 'loading' ? '正在讀取錢包…'
+                : walletOptionsState === 'error' ? '讀取失敗，請重新讀取'
+                : names.length ? '請選擇錢包' : '尚無錢包，請先新增';
+            WALLET_SELECT_IDS.forEach(id => {
+                const select = document.getElementById(id);
+                const previous = select.value;
+                const cardOptions = Array.from(select.querySelectorAll('option[data-card-payment="true"]'));
+                select.replaceChildren(new Option(placeholder, ''));
+                names.forEach(name => select.add(new Option(name, name)));
+                cardOptions.forEach(option => select.add(option));
+                // 已刪除的錢包不自動改成另一個扣款帳戶，必須重新選擇。
+                select.value = names.includes(previous) || cardOptions.some(option => option.value === previous)
+                    ? previous : '';
+                select.disabled = !available;
+            });
+            const inCreditMode = document.getElementById('form-incomeExpenseType').value === '信用卡';
+            if (inCreditMode) configureCreditCardAction();
+            else setPaymentTypeOptions(false);
+            document.getElementById('wallet-options-status').textContent = walletOptionsState === 'loading'
+                ? '正在同步「我的錢包」…'
+                : walletOptionsState === 'error' ? '錢包讀取失敗，請重新讀取後再記帳。'
+                : available ? `已同步 ${names.length} 個錢包。` : '目前沒有可用錢包，請先到「管理錢包」新增。';
+        }
+
+        async function loadWalletOptions() {
+            const request = ++walletOptionsRequest;
+            walletOptionsState = 'loading';
+            renderWalletOptions();
+            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20000);
+            try {
+                const response = await fetch(API_URL + '?action=getWalletsManage', {
+                    cache: 'no-store', signal: controller.signal
+                });
+                if (!response.ok) throw new Error('錢包清單連線失敗');
+                const result = await response.json();
+                if (!result.success || !Array.isArray(result.data)) throw new Error(result.message || '錢包清單格式錯誤');
+                if (request !== walletOptionsRequest) return false;
+                cachedManageWallets = result.data;
+                walletOptionsState = 'ready';
+                renderWalletOptions();
+                return true;
+            } catch (error) {
+                if (request !== walletOptionsRequest) return false;
+                walletOptionsState = 'error';
+                renderWalletOptions();
+                console.error('錢包清單讀取失敗', error);
+                return false;
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        function validateRecordWallets() {
+            const mode = document.getElementById('form-incomeExpenseType').value;
+            const action = document.getElementById('form-cardAction').value;
+            let required;
+            if (document.getElementById('form-transactionType').value === '帳戶互轉') {
+                required = ['form-transferOut', 'form-transferIn'];
+            } else if (mode === '信用卡' && ['正卡刷卡', '副卡刷卡'].includes(action)) {
+                return true; // 刷卡本身不動用錢包，沿用既有固定支付類型。
+            } else if (mode === '信用卡' && !action) {
+                return true; // 交由原有信用卡動作檢查提示。
+            } else {
+                required = mode === '收入' || mode === '還款收入' || (mode === '信用卡' && action === '副卡收款')
+                    ? ['form-incomeAccount'] : ['form-paymentType'];
+            }
+            if (walletOptionsState !== 'ready') {
+                alert('請先完成錢包清單讀取；若讀取失敗，請按「重新讀取錢包」。');
+                return false;
+            }
+            const names = getWalletOptionNames();
+            if (!names.length) {
+                alert('目前沒有可用錢包，請先到「管理錢包」新增。');
+                return false;
+            }
+            if (required.some(id => !names.includes(document.getElementById(id).value))) {
+                alert('請選擇目前有效的錢包；帳戶互轉需選擇轉出及轉入帳戶。');
+                return false;
+            }
+            return true;
+        }
+
+        document.getElementById('form-paymentType').addEventListener('change', event => {
+            if (getWalletOptionNames().includes(event.target.value)) lastSelectedPaymentWallet = event.target.value;
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && document.getElementById('page-add').classList.contains('active')) loadWalletOptions();
+        });
+
+        // 2. 讀取錢包資料，同時更新全部記帳選單。
         async function loadWalletManage() {
             const container = document.getElementById('wallet-manage-container');
             container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
-
-            try {
-                const response = await fetch(API_URL + "?action=getWalletsManage");
-                const result = await response.json();
-                if (result.success) {
-                    cachedManageWallets = result.data;
-                    renderWalletManageHTML();
-                } else {
-                    container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗：${result.message}</div>`;
-                }
-            } catch (error) {
-                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 網路錯誤，請稍後再試。</div>`;
+            if (await loadWalletOptions()) {
+                renderWalletManageHTML();
+            } else {
+                container.innerHTML = `<div class="placeholder-box" style="color:#ff7675;">❌ 讀取失敗，請重新進入管理錢包再試。</div>`;
             }
         }
 
@@ -2035,7 +2138,8 @@
                     inputObj.value = "";
                     isReportDataDirty = true;
                     // 💡 視窗 2：跳出最後的成功結果視窗 (此時按鈕已恢復，可正常點擊關閉)
-                    showCustomAlert("✅", "開戶成功", result.message, () => loadWalletManage());
+                    loadWalletManage();
+                    showCustomAlert("✅", "開戶成功", result.message);
                 } else {
                     showCustomAlert("❌", "新增失敗", result.message);
                 }
@@ -2073,7 +2177,8 @@
                     if (result.success) {
                         isReportDataDirty = true;
                         // 💡 視窗 2：跳出最後的單一成功視窗
-                        showCustomAlert("✅", "註銷成功", result.message, () => loadWalletManage());
+                        loadWalletManage();
+                        showCustomAlert("✅", "註銷成功", result.message);
                     } else {
                         showCustomAlert("❌", "刪除失敗", result.message);
                     }
