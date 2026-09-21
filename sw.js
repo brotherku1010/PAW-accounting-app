@@ -1,6 +1,7 @@
-const CACHE_NAME = 'accounting-app-v8';
+const CACHE_NAME = 'accounting-app-v10';
 const urlsToCache = [
   './index.html',
+  './app-config.js',
   './manifest.json'
 ];
 
@@ -20,7 +21,7 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
       .then(keys => Promise.all(keys
-        .filter(key => key !== CACHE_NAME)
+        .filter(key => key.startsWith('accounting-app-') && key !== CACHE_NAME)
         .map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
@@ -30,6 +31,11 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
     // 錢包選單必須取得最新名單，不使用任何既有 API 快取。
     const url = new URL(event.request.url);
+    if (event.request.method !== 'GET' || url.hostname === 'script.google.com' || url.hostname === 'script.googleusercontent.com') return;
+    if (url.pathname.endsWith('/app-config.js')) {
+      event.respondWith(fetch(event.request, { cache: 'no-store' }).catch(() => caches.match(event.request)));
+      return;
+    }
     if (url.searchParams.get('action') === 'getWalletsManage') return;
   event.respondWith(
     caches.match(event.request)

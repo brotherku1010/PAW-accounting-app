@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#12121a">
     <link rel="manifest" href="cardholder-manifest.json">
+    <script src="./app-config.js"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <title>信用卡附卡明細</title>
     <style>
@@ -78,7 +79,7 @@
     </main>
     <div id="app-lock">
         <div class="lock-card">
-            <h2>國泰信用卡副卡消費記錄</h2>
+            <h2>PAW 附卡額度</h2>
             <p>請輸入進入密碼後查看消費金額。</p>
             <input id="app-password" type="password" inputmode="numeric" autocomplete="current-password" maxlength="12" aria-label="進入密碼">
             <button onclick="unlockApp()">進入</button>
@@ -87,27 +88,31 @@
     </div>
 
     <script>
-        const API_URL = 'https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec';
+        const API_URL = PAWConfig.bootstrapUrl;
         const yearSelect = document.getElementById('selected-year');
         const monthSelect = document.getElementById('selected-month');
         const applyButton = document.getElementById('apply-button');
-        const APP_PASSWORD = '1973';
-        const ONESIGNAL_APP_ID = '63edf55e-d6fa-4954-a990-e83ff5675d51';
-        const CARDHOLDER_REMINDER_TAG = 'paw_cardholder_payment_reminder';
-        const ONESIGNAL_WORKER_PATH = 'OneSignalSDK-v16-ServiceWorker/OneSignalSDK-v16-ServiceWorker/OneSignalSDKWorker.js';
-        const ONESIGNAL_WORKER_SCOPE = './OneSignalSDK-v16-ServiceWorker/OneSignalSDK-v16-ServiceWorker/';
+        let cardholderReminderTag = '';
+        let personalReminderTag = '';
         let oneSignalInstance = null;
         let oneSignalInitError = '';
         const oneSignalReady = new Promise(resolve => {
             window.OneSignalDeferred = window.OneSignalDeferred || [];
             window.OneSignalDeferred.push(async function (OneSignal) {
                 try {
+                    const config = await PAWConfig.get();
+                    cardholderReminderTag = config.cardholderReminderTag;
+                    personalReminderTag = config.personalReminderTag;
+                    if (!personalReminderTag || !cardholderReminderTag || personalReminderTag === cardholderReminderTag) {
+                        throw new Error('通知分流設定尚未更新，請更新 GAS 後重新開啟');
+                    }
                     await OneSignal.init({
-                        appId: ONESIGNAL_APP_ID,
+                        appId: config.oneSignalAppId,
                         notifyButton: { enable: false },
-                        serviceWorkerPath: ONESIGNAL_WORKER_PATH,
-                        serviceWorkerParam: { scope: ONESIGNAL_WORKER_SCOPE }
+                        serviceWorkerPath: config.cardholderWorkerPath,
+                        serviceWorkerParam: { scope: config.cardholderWorkerScope }
                     });
+                    await registerCardholderAudience(OneSignal);
                     oneSignalInstance = OneSignal;
                     OneSignal.User.PushSubscription.addEventListener('change', refreshCardholderReminderUI);
                 } catch (error) {
@@ -117,6 +122,13 @@
                 resolve(oneSignalInstance);
             });
         });
+
+        async function registerCardholderAudience(OneSignal) {
+            // 同一瀏覽器開過兩個介面時，以附卡身分優先，避免收到私人經費提醒。
+            await OneSignal.User.removeTag(personalReminderTag);
+            const tags = OneSignal.User.getTags() || {};
+            await OneSignal.User.addTag(cardholderReminderTag, tags[cardholderReminderTag] === 'enabled' ? 'enabled' : 'disabled');
+        }
 
         function escapeHtml(value) {
             return String(value ?? '').replace(/[&<>'"]/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[char]);
@@ -185,7 +197,7 @@
             details.className = 'message';
             details.textContent = '正在載入附卡明細...';
             try {
-                const response = await fetch(`${API_URL}?action=getSupplementaryCardDetails`);
+                const response = await PAWConfig.fetch(`${API_URL}?action=getSupplementaryCardDetails`);
                 const result = await response.json();
                 if (!result.success) throw new Error(result.message || '讀取失敗');
                 setOptions(result.options.year, result.options.month);
@@ -200,7 +212,7 @@
             applyButton.disabled = true;
             applyButton.textContent = '更新中...';
             try {
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action:'updateSupplementaryCardOptions', year:Number(yearSelect.value), month:Number(monthSelect.value) })
                 });
@@ -240,7 +252,7 @@
                 return;
             }
             const tags = OneSignal.User.getTags() || {};
-            const enabled = Boolean(OneSignal.User.PushSubscription.optedIn && tags[CARDHOLDER_REMINDER_TAG] === 'enabled');
+            const enabled = Boolean(OneSignal.User.PushSubscription.optedIn && tags[cardholderReminderTag] === 'enabled');
             setCardholderReminderUI({ enabled });
         }
 
@@ -252,13 +264,14 @@
                 if (!OneSignal || !OneSignal.Notifications.isPushSupported()) throw new Error('此裝置不支援推播通知');
 
                 const tags = OneSignal.User.getTags() || {};
-                const isEnabled = Boolean(OneSignal.User.PushSubscription.optedIn && tags[CARDHOLDER_REMINDER_TAG] === 'enabled');
+                const isEnabled = Boolean(OneSignal.User.PushSubscription.optedIn && tags[cardholderReminderTag] === 'enabled');
+                await registerCardholderAudience(OneSignal);
                 if (isEnabled) {
-                    await OneSignal.User.removeTag(CARDHOLDER_REMINDER_TAG);
+                    await OneSignal.User.addTag(cardholderReminderTag, 'disabled');
                 } else {
                     if (!OneSignal.User.PushSubscription.optedIn) await OneSignal.User.PushSubscription.optIn();
                     if (!OneSignal.User.PushSubscription.optedIn) throw new Error('尚未取得通知權限，請在瀏覽器提示中選擇允許');
-                    await OneSignal.User.addTag(CARDHOLDER_REMINDER_TAG, 'enabled');
+                    await OneSignal.User.addTag(cardholderReminderTag, 'enabled');
                 }
             } catch (error) {
                 setCardholderReminderUI({
@@ -270,17 +283,34 @@
             await refreshCardholderReminderUI();
         }
 
-        function unlockApp() {
+        let unlockInProgress = false;
+        async function unlockApp() {
+            if (unlockInProgress) return;
             const input = document.getElementById('app-password');
-            if (input.value !== APP_PASSWORD) {
-                document.getElementById('lock-error').textContent = '密碼不正確，請再試一次。';
-                input.select();
-                return;
+            unlockInProgress = true;
+            document.getElementById('lock-error').textContent = '正在確認密碼…';
+            try {
+                const response = await PAWConfig.fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'verifyCardholderPassword', password: input.value })
+                });
+                const result = await response.json();
+                if (!result.success) throw new Error('無法確認密碼，請檢查系統設定。');
+                if (!result.valid) {
+                    document.getElementById('lock-error').textContent = '密碼不正確，請再試一次。';
+                    input.select();
+                    return;
+                }
+                sessionStorage.setItem('paw-cardholder-unlocked', 'true');
+                document.getElementById('app-lock').style.display = 'none';
+                input.value = '';
+                loadDetails();
+                refreshCardholderReminderUI();
+            } catch (error) {
+                document.getElementById('lock-error').textContent = '無法確認密碼，請確認連線後再試。';
+            } finally {
+                unlockInProgress = false;
             }
-            sessionStorage.setItem('paw-cardholder-unlocked', 'true');
-            document.getElementById('app-lock').style.display = 'none';
-            loadDetails();
-            refreshCardholderReminderUI();
         }
 
         function lockApp() {

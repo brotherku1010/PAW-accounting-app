@@ -13,17 +13,20 @@
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./app-config.js"></script>
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
     <script>
         window.OneSignalDeferred = window.OneSignalDeferred || [];
-        OneSignalDeferred.push(function (OneSignal) {
-            OneSignal.init({
-                appId: "63edf55e-d6fa-4954-a990-e83ff5675d51",
-                notifyButton: {
-                    enable: false,
-                }
-                // 這裡不需要任何 serviceWorkerPath 的設定了，因為它會自動去根目錄找！
-            });
+        OneSignalDeferred.push(async function (OneSignal) {
+            try {
+                const config = await PAWConfig.get();
+                await OneSignal.init({
+                    appId: config.oneSignalAppId,
+                    notifyButton: { enable: false }
+                });
+            } catch (error) {
+                console.warn('推播設定載入失敗，請確認設定檔：', error.message);
+            }
         });
     </script>
 
@@ -1082,9 +1085,9 @@
                     <div
                         style="font-size: 16px; font-weight: bold; color: white; display: flex; align-items: center; gap: 6px;">
                         <span class="material-symbols-outlined" id="push-status-icon">notifications_off</span>
-                        <span id="push-status-text">通知要開麻</span>
+                        <span id="push-status-text">個人繳款提醒</span>
                     </div>
-                    <div style="font-size: 12px; color: var(--text-muted);">別太相信自己的頭腦...開啟通知以防萬一啦~</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">只在自己的手機開啟，接收個人貸款與經費提醒；附卡提醒請在附卡明細設定。</div>
                 </div>
 
                 <label class="switch">
@@ -1188,9 +1191,9 @@
             }
 
             // 4. ★ 核心修復：開機主動向雲端發送請求，同步當月資產，存入 cachedReportData 快取中
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
             try {
-                const response = await fetch(API_URL + "?action=getReport");
+                const response = await PAWConfig.fetch(API_URL + "?action=getReport");
                 const result = await response.json();
                 if (result.success) {
                     cachedReportData = result.data; // 下載完成，寫入全域快取
@@ -1394,9 +1397,9 @@
                 // 如果剛新增完記帳或刪除過資料 (Dirty === true)，在返回首頁時，強制在背景發起靜態更新
                 if (isReportDataDirty) {
                     (async () => {
-                        const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                        const API_URL = PAWConfig.bootstrapUrl;
                         try {
-                            const response = await fetch(API_URL + "?action=getReport");
+                            const response = await PAWConfig.fetch(API_URL + "?action=getReport");
                             const result = await response.json();
                             if (result.success) {
                                 cachedReportData = result.data;
@@ -1449,14 +1452,14 @@
 
         // 新增：將當前網頁選定的年、月送給 GAS 
         async function syncMonthToGoogleSheet() {
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1; // 轉為 1~12 月數字
 
             try {
                 // 發送 POST 請求，指定 action 為 updateSelectedMonth
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({
                         action: "updateSelectedMonth",
@@ -1613,7 +1616,7 @@
         // 3.將資料打包並送出給 GAS
         async function submitRecord() {
             // ★★★ 請保留您最新的 GAS Web App 網址 ★★★
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             const btn = document.getElementById('btn-submit');
             if (btn.disabled || !validateRecordWallets()) return;
@@ -1683,7 +1686,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify(payload)
                 });
@@ -1865,7 +1868,7 @@
         // ================= 底圖生成系統 (雲端動態版) =================
         // 首頁載入時產生底圖
         async function spawnRandomPic() {
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
                 // ★ 核心新增：檢查瀏覽器有沒有記住上次選的資料夾 ID
@@ -1877,7 +1880,7 @@
                     fetchUrl = `${API_URL}?action=getImagesByFolder&folderId=${savedFolderId}`;
                 }
 
-                const response = await fetch(fetchUrl);
+                const response = await PAWConfig.fetch(fetchUrl);
                 const result = await response.json();
 
                 if (result.success && Array.isArray(result.images)) {
@@ -1999,11 +2002,11 @@
             const request = ++walletOptionsRequest;
             walletOptionsState = 'loading';
             renderWalletOptions();
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 20000);
             try {
-                const response = await fetch(API_URL + '?action=getWalletsManage', {
+                const response = await PAWConfig.fetch(API_URL + '?action=getWalletsManage', {
                     cache: 'no-store', signal: controller.signal
                 });
                 if (!response.ok) throw new Error('錢包清單連線失敗');
@@ -2121,9 +2124,9 @@
             const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
             alertButtons.forEach(btn => btn.style.display = 'none');
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
             try {
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     redirect: "follow",
@@ -2161,9 +2164,9 @@
                 const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
                 alertButtons.forEach(btn => btn.style.display = 'none');
 
-                const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                const API_URL = PAWConfig.bootstrapUrl;
                 try {
-                    const response = await fetch(API_URL, {
+                    const response = await PAWConfig.fetch(API_URL, {
                         method: "POST",
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                         redirect: "follow",
@@ -2189,26 +2192,42 @@
             });
         }
         // ================= 開啟通知管理引擎 (OneSignal v16) =================
+        async function getPersonalPushState(OneSignal) {
+            const config = await PAWConfig.get();
+            if (!config.personalReminderTag || !config.cardholderReminderTag || config.personalReminderTag === config.cardholderReminderTag) {
+                throw new Error('通知分流設定尚未更新，請更新 GAS 後重新開啟');
+            }
+            const tags = OneSignal.User.getTags() || {};
+            const isCardholder = Object.prototype.hasOwnProperty.call(tags, config.cardholderReminderTag);
+            return {
+                config,
+                isCardholder,
+                enabled: Boolean(OneSignal.User.PushSubscription.optedIn && !isCardholder && tags[config.personalReminderTag] === 'enabled')
+            };
+        }
+
         // 1. 檢查目前的訂閱狀態
         function checkPushStatus() {
             window.OneSignalDeferred.push(async function (OneSignal) {
-                // 確認是否在支援的環境中
-                const isSupported = OneSignal.Notifications.isPushSupported();
                 const checkbox = document.getElementById('push-toggle-checkbox');
                 const statusText = document.getElementById('push-status-text');
-
-                if (!isSupported) {
-                    statusText.innerText = "本裝置/瀏覽器不支援推播";
+                try {
+                    if (!OneSignal.Notifications.isPushSupported()) {
+                        updatePushUI(false);
+                        statusText.innerText = '本裝置/瀏覽器不支援推播';
+                        checkbox.disabled = true;
+                        return;
+                    }
+                    const state = await getPersonalPushState(OneSignal);
+                    updatePushUI(state.enabled);
+                    checkbox.disabled = state.isCardholder;
+                    if (state.isCardholder) statusText.innerText = '附卡裝置：不接收個人提醒';
+                } catch (error) {
+                    updatePushUI(false);
+                    statusText.innerText = '無法讀取個人提醒設定，請重新開啟';
                     checkbox.disabled = true;
-                    return;
+                    console.warn('個人提醒狀態讀取失敗：', error);
                 }
-
-                // 讀取 OneSignal 訂閱狀態 (optedIn)
-                const isSubscribed = OneSignal.User.PushSubscription.optedIn;
-
-                // 解除開關的鎖定並更新畫面
-                checkbox.disabled = false;
-                updatePushUI(isSubscribed);
             });
         }
 
@@ -2221,49 +2240,46 @@
             checkbox.checked = isSubscribed;
 
             if (isSubscribed) {
-                statusText.innerText = "推播已開啟";
+                statusText.innerText = "個人提醒已開啟";
                 statusText.style.color = "#2ecc71"; // 成功綠
                 statusIcon.innerText = "notifications_active";
                 statusIcon.style.color = "#2ecc71";
             } else {
-                statusText.innerText = "推播未開啟";
+                statusText.innerText = "個人提醒未開啟";
                 statusText.style.color = "white"; // 預設白
                 statusIcon.innerText = "notifications_off";
                 statusIcon.style.color = "white";
             }
         }
 
-        // 3. 使用者點擊滑動開關時觸發 (智慧判斷恢復機制)
+        // 3. 只切換個人提醒標記，不以全域 optOut 影響附卡提醒。
         function handlePushToggle(checkbox) {
             const isChecked = checkbox.checked;
-
+            checkbox.disabled = true;
             window.OneSignalDeferred.push(async function (OneSignal) {
-                if (isChecked) {
-                    // ★ 核心修復：檢查瀏覽器原生權限是否早已允許
-                    if (Notification.permission === "granted") {
-                        // 如果早就允許過，代表之前是「軟暫停 (optOut)」，現在直接「解除靜音 (optIn)」
+                try {
+                    if (!OneSignal.Notifications.isPushSupported()) throw new Error('此裝置不支援推播通知');
+                    const state = await getPersonalPushState(OneSignal);
+                    if (isChecked) {
+                        if (state.isCardholder) {
+                            throw new Error('這個瀏覽器已登記為附卡裝置，不接收私人提醒。請在自己的其他手機或獨立瀏覽器開啟個人提醒。');
+                        }
                         await OneSignal.User.PushSubscription.optIn();
-                        updatePushUI(true);
-                        showCustomAlert("✅", "已開啟通知", "您又做對了ㄛ~");
+                        if (!OneSignal.User.PushSubscription.optedIn) throw new Error('尚未取得通知權限，請允許瀏覽器通知後再試');
+                        // 再檢查一次，避免等候權限期間另一分頁切換成附卡身分。
+                        if ((await getPersonalPushState(OneSignal)).isCardholder) throw new Error('此瀏覽器已切換為附卡裝置，已停止開啟個人提醒');
+                        await OneSignal.User.addTag(state.config.personalReminderTag, 'enabled');
+                        if (!(await getPersonalPushState(OneSignal)).enabled) throw new Error('個人提醒標記未生效，請稍後重試');
+                        showCustomAlert('✅', '個人提醒已開啟', '此裝置將接收個人貸款與經費繳款提醒。');
                     } else {
-                        // 如果還沒允許過，才呼叫原本的彈出詢問視窗
-                        OneSignal.Slidedown.promptPush().then(function (accepted) {
-                            if (accepted) {
-                                showCustomAlert("✅", "已開啟通知", "您做了很好的判斷ㄛ~");
-                                updatePushUI(true);
-                            } else {
-                                updatePushUI(false);
-                                if (Notification.permission === "denied") {
-                                    showCustomAlert("⚠️", "權限遭阻擋", "您這個可能要開啟瀏覽器的通知才可以歐！");
-                                }
-                            }
-                        });
+                        await OneSignal.User.removeTag(state.config.personalReminderTag);
+                        showCustomAlert('🔕', '個人提醒已關閉', '不會影響附卡繳費提醒。');
                     }
-                } else {
-                    // 使用者手動關閉推播：執行軟暫停 (optOut)
-                    await OneSignal.User.PushSubscription.optOut();
+                } catch (error) {
                     updatePushUI(false);
-                    showCustomAlert("🔕", "通知已關閉", "看來您非常相信自己的記憶力齁~");
+                    showCustomAlert('⚠️', '無法變更個人提醒', error.message || '請稍後再試');
+                } finally {
+                    checkPushStatus();
                 }
             });
         }
@@ -2296,11 +2312,11 @@
                 toggleBtn.style.color = "var(--text-muted)";
             }
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
                 const fetchUrl = `${API_URL}?action=getReminds&t=${new Date().getTime()}`;
-                const response = await fetch(fetchUrl);
+                const response = await PAWConfig.fetch(fetchUrl);
                 const result = await response.json();
 
                 if (result.success) {
@@ -2355,9 +2371,9 @@
             const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
             alertButtons.forEach(btn => btn.style.display = 'none');
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
             try {
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "text/plain;charset=utf-8" },
                     body: JSON.stringify({ action: "addRemind", name: name, cycle: cycle, date: dateVal, amount: amount })
@@ -2406,10 +2422,10 @@
                     const alertButtons = document.querySelectorAll('.custom-modal button, #custom-alert button');
                     alertButtons.forEach(btn => btn.style.display = 'none');
 
-                    const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                    const API_URL = PAWConfig.bootstrapUrl;
 
                     try {
-                        const response = await fetch(API_URL, {
+                        const response = await PAWConfig.fetch(API_URL, {
                             method: "POST",
                             headers: { "Content-Type": "text/plain;charset=utf-8" },
                             body: JSON.stringify({ action: "deleteRemind", row: rowIdx })
@@ -2439,7 +2455,7 @@
         // 1. 觸發選單：取得所有子資料夾 (分類)
         // 1. 觸發選單：取得所有子資料夾 (分類)
         async function triggerChangeBackground() {
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             // 💡 呼叫時帶入 ⏳，第一步的魔法邏輯就會把按鈕藏起來
             showCustomAlert("⏳", "讀取中", "正在掃描雲端分類...");
@@ -2449,7 +2465,7 @@
             if (!modal || !container) return;
 
             try {
-                const response = await fetch(API_URL + "?action=getAlbumList");
+                const response = await PAWConfig.fetch(API_URL + "?action=getAlbumList");
                 const result = await response.json();
 
                 if (result.success) {
@@ -2480,12 +2496,12 @@
         // 2. 執行切換：根據選定的 ID 讀取照片並更換
         // 2. 執行切換：根據選定的 ID 讀取照片並更換
         async function loadBackgroundByFolder(folderId) {
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             showCustomAlert("⏳", "更新中", "正在下載圖片...");
 
             try {
-                const response = await fetch(`${API_URL}?action=getImagesByFolder&folderId=${folderId}`);
+                const response = await PAWConfig.fetch(`${API_URL}?action=getImagesByFolder&folderId=${folderId}`);
                 const result = await response.json();
 
                 if (result.success && Array.isArray(result.images)) {
@@ -2523,10 +2539,10 @@
             }
 
             container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
-                const response = await fetch(API_URL + "?action=getReport");
+                const response = await PAWConfig.fetch(API_URL + "?action=getReport");
                 const result = await response.json();
 
                 if (result.success) {
@@ -2609,11 +2625,11 @@
             btn.style.opacity = "0.5";
 
             // ★ 您的 GAS API 網址
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
                 // 呼叫我們之前寫好的 getReport 來取得所有非空白的項目
-                const response = await fetch(API_URL + "?action=getReport");
+                const response = await PAWConfig.fetch(API_URL + "?action=getReport");
                 const result = await response.json();
 
                 if (result.success) {
@@ -2699,9 +2715,9 @@
                 ratio: Number(item.ratio) / 100
             }));
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
             try {
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: "POST",
                     body: JSON.stringify({ action: "updateBudget", items: payloadItems })
                 });
@@ -2877,11 +2893,11 @@
             contentArea.innerHTML = `<div style="text-align:center; padding: 40px 0; color: var(--text-muted);">⏳ ${getRandomNonsense()}</div>`;
             document.getElementById('category-details-modal').style.display = 'flex';
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
                 // 發送 GET 請求，附帶要查詢的項目名稱
-                const response = await fetch(`${API_URL}?action=getCategoryDetails&category=${encodeURIComponent(categoryName)}`);
+                const response = await PAWConfig.fetch(`${API_URL}?action=getCategoryDetails&category=${encodeURIComponent(categoryName)}`);
                 const result = await response.json();
 
                 if (result.success) {
@@ -2934,11 +2950,11 @@
             // 顯示趣味等待語錄
             container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
                 // 發送 POST 請求，告訴後端我們要改 B2 並拿資料
-                const response = await fetch(API_URL, {
+                const response = await PAWConfig.fetch(API_URL, {
                     method: "POST",
                     // ★ 修正 1：加上 text/plain 避免觸發嚴格的 CORS 預檢請求 (Preflight)
                     headers: {
@@ -3025,10 +3041,10 @@
             const loadingDiv = document.getElementById('chart-loading-msg');
             loadingDiv.innerHTML = `⏳ ${getRandomMaskedText()}`; // 套用您的幹話語錄機制
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
-                const response = await fetch(API_URL + "?action=getExpenseChartData");
+                const response = await PAWConfig.fetch(API_URL + "?action=getExpenseChartData");
                 const result = await response.json();
 
                 if (result.success && result.labels.length > 0) {
@@ -3172,7 +3188,7 @@
         }
 
         // ================= 信用卡消費控制系統 =================
-        const CREDIT_CARD_API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+        const CREDIT_CARD_API_URL = PAWConfig.bootstrapUrl;
         let cachedCreditCardRecords = [];
         let creditCardSelectedMonth = "";
         let cachedCreditCardSummary = null;
@@ -3195,7 +3211,7 @@
 
             try {
                 const requestMonth = creditCardSelectedMonth ? `&month=${encodeURIComponent(creditCardSelectedMonth)}` : '';
-                const response = await fetch(`${CREDIT_CARD_API_URL}?action=getCreditCardRecords${requestMonth}`);
+                const response = await PAWConfig.fetch(`${CREDIT_CARD_API_URL}?action=getCreditCardRecords${requestMonth}`);
                 const result = await response.json();
                 if (!result.success) throw new Error(result.message || '讀取失敗');
 
@@ -3227,7 +3243,7 @@
                 return;
             }
             try {
-                const response = await fetch(CREDIT_CARD_API_URL, {
+                const response = await PAWConfig.fetch(CREDIT_CARD_API_URL, {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'updateCreditCardBillingSettings',
@@ -3322,7 +3338,7 @@
                 return;
             }
             try {
-                const response = await fetch(CREDIT_CARD_API_URL, {
+                const response = await PAWConfig.fetch(CREDIT_CARD_API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'updateCreditCardRecord', id, date, amount, note })
                 });
@@ -3339,7 +3355,7 @@
         async function deleteCreditCardRecord(id) {
             if (!window.confirm('確定要刪除這筆信用卡消費嗎？此操作無法復原。')) return;
             try {
-                const response = await fetch(CREDIT_CARD_API_URL, {
+                const response = await PAWConfig.fetch(CREDIT_CARD_API_URL, {
                     method: 'POST',
                     body: JSON.stringify({ action: 'deleteCreditCardRecord', id })
                 });
@@ -3380,10 +3396,10 @@
             container.innerHTML = `<div class="placeholder-box">⏳ ${getRandomNonsense()}</div>`;
             if (paginationContainer) paginationContainer.innerHTML = '';
 
-            const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+            const API_URL = PAWConfig.bootstrapUrl;
 
             try {
-                const response = await fetch(API_URL + "?action=getRawData");
+                const response = await PAWConfig.fetch(API_URL + "?action=getRawData");
                 const result = await response.json();
                 if (result.success) {
                     cachedRawData = result.data;
@@ -3506,9 +3522,9 @@
         function executeDeleteRecord(id) {
             showConfirmModal("確認刪除該筆資料？", "刪除後報表將自動重算，且無法復原喔！", async () => {
                 showCustomAlert("⏳", "處理中", "正在幫您竄改中，嚴請肅靜！");
-                const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                const API_URL = PAWConfig.bootstrapUrl;
                 try {
-                    const response = await fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecord", id: id }) });
+                    const response = await PAWConfig.fetch(API_URL, { method: "POST", body: JSON.stringify({ action: "deleteRecord", id: id }) });
                     const result = await response.json();
                     if (result.success) {
                         isReportDataDirty = true;
@@ -3532,10 +3548,10 @@
             showConfirmModal("確認刪除該筆資料？", "刪除後報表將自動重算，且無法復原喔！", async () => {
 
                 showCustomAlert("⏳", "處理中", "正在幫您竄改中，嚴請肅靜！");
-                const API_URL = "https://script.google.com/macros/s/AKfycbxe7e6g3TOC0mPoQZPIKabS10IHBCdkIIZUQ_ykjRluoQPHoLwPcwlHEmYYIreFD09fRQ/exec";
+                const API_URL = PAWConfig.bootstrapUrl;
 
                 try {
-                    const response = await fetch(API_URL, {
+                    const response = await PAWConfig.fetch(API_URL, {
                         method: "POST",
                         body: JSON.stringify({ action: "deleteRecord", id: id })
                     });
